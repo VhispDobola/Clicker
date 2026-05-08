@@ -1,14 +1,18 @@
 // ========================
-// ENHANCED EPIC VISUAL SYSTEM
+// ULTIMATE EPIC VISUAL SYSTEM
 // ========================
 var visualCanvas, visualCtx;
 var visualTime = 0;
 var effects = null;
-var bgObjects = [];
+var w, h;
 
 function ensureEffects() {
     if (!effects) {
-        effects = { stars: [], asteroids: [], comets: [], particles: [], auras: [], shockwaves: [], blackholes: [], nebulas: [], rings: [], floating: [] };
+        effects = {
+            stars: [], nebulas: [], comets: [], particles: [], auras: [],
+            shockwaves: [], floating: [], rings: [], spirals: [], blasts: [],
+            meteors: [], portals: [], cracks: []
+        };
     }
     return effects;
 }
@@ -23,65 +27,73 @@ function initVisuals() {
             document.body.insertBefore(visualCanvas, document.body.firstChild);
         }
         visualCtx = visualCanvas.getContext('2d');
-        
         resizeCanvas();
         
         ensureEffects();
-        initStars();
-        initNebulas();
+        createStarfield();
+        createNebulas();
+        createPortals();
         
         requestAnimationFrame(animateVisuals);
-    } catch (e) { console.log('Visual init error:', e); }
+    } catch (e) { console.log('Init error:', e); }
 }
 
 function resizeCanvas() {
     if (visualCanvas) {
-        visualCanvas.width = window.innerWidth || 1920;
-        visualCanvas.height = window.innerHeight || 1080;
+        w = window.innerWidth || 1920;
+        h = window.innerHeight || 1080;
+        visualCanvas.width = w;
+        visualCanvas.height = h;
     }
 }
 
-function initStars() {
+function createStarfield() {
     if (!effects) return;
     effects.stars = [];
-    for (var i = 0; i < 300; i++) {
+    for (var i = 0; i < 400; i++) {
         effects.stars.push({
-            x: Math.random() * (visualCanvas?.width || 1920),
-            y: Math.random() * (visualCanvas?.height || 1080),
-            size: Math.random() * 2.5 + 0.3,
+            x: Math.random() * w,
+            y: Math.random() * h,
+            z: Math.random() * 3 + 0.5,
+            size: Math.random() * 2 + 0.5,
             brightness: Math.random(),
             twinkle: Math.random() * Math.PI * 2,
-            speed: Math.random() * 0.5 + 0.1,
-            color: getStarColor(),
-            size2: Math.random() > 0.9 ? Math.random() * 3 + 2 : 0
+            color: ['#fff', '#aaf', '#faf', '#ffa', '#afa', '#aaa'][Math.floor(Math.random() * 6)]
         });
     }
 }
 
-function getStarColor() {
-    var colors = ['#ffffff', '#aaccff', '#ffaa88', '#88ffaa', '#ffaaff', '#ffffaa', '#aaffff'];
-    return colors[Math.floor(Math.random() * colors.length)];
-}
-
-function initNebulas() {
+function createNebulas() {
     if (!effects) return;
     effects.nebulas = [];
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < 8; i++) {
         effects.nebulas.push({
-            x: Math.random() * (visualCanvas?.width || 1920),
-            y: Math.random() * (visualCanvas?.height || 1080),
-            size: Math.random() * 200 + 100,
-            color: getNebulaColor(),
-            alpha: Math.random() * 0.15 + 0.05,
-            speed: (Math.random() - 0.5) * 0.3,
+            x: Math.random() * w,
+            y: Math.random() * h,
+            size: 150 + Math.random() * 250,
+            color: ['#311', '#131', '#113', '#311', '#211', '#121'][Math.floor(Math.random() * 6)],
+            color2: ['#534', '#345', '#435', '#534', '#423', '#324'][Math.floor(Math.random() * 6)],
+            alpha: 0.08 + Math.random() * 0.1,
+            speed: (Math.random() - 0.5) * 0.4,
             angle: Math.random() * Math.PI * 2
         });
     }
 }
 
-function getNebulaColor() {
-    var colors = ['#4400aa', '#0044aa', '#aa4400', '#44aa00', '#aa00aa', '#4444aa'];
-    return colors[Math.floor(Math.random() * colors.length)];
+function createPortals() {
+    if (!effects) return;
+    effects.portals = [];
+    for (var i = 0; i < 3; i++) {
+        effects.portals.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            size: 20 + Math.random() * 40,
+            rotation: Math.random() * Math.PI * 2,
+            speed: (Math.random() - 0.5) * 0.02,
+            brightness: Math.random(),
+            color: ['#88f', '#8f8', '#f88', '#f8f', '#8ff'][Math.floor(Math.random() * 5)]
+        });
+    }
 }
 
 function animateVisuals() {
@@ -93,186 +105,300 @@ function animateVisuals() {
     visualTime += 0.016;
     ensureEffects();
     
-    drawBackground();
+    drawDeepSpace();
     drawNebulas();
+    drawPortals();
     drawStars();
-    drawFloatingObjects();
+    drawMeteors();
+    drawCracks();
+    drawSpirals();
+    drawFloating();
     drawComets();
     drawParticles();
     drawAuras();
     drawShockwaves();
+    drawBlasts();
     drawEpicPlanet();
-    drawUpgradeVisuals();
+    drawUpgradeEffects();
     
     requestAnimationFrame(animateVisuals);
 }
 
-function drawBackground() {
-    if (!visualCtx || !visualCanvas) return;
-    var gradient = visualCtx.createRadialGradient(visualCanvas.width / 2, visualCanvas.height / 2, 0, visualCanvas.width / 2, visualCanvas.height / 2, visualCanvas.width);
-    gradient.addColorStop(0, '#0a0a20');
-    gradient.addColorStop(0.5, '#050515');
-    gradient.addColorStop(1, '#020208');
+function drawDeepSpace() {
+    var gradient = visualCtx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w);
+    gradient.addColorStop(0, '#0a0a18');
+    gradient.addColorStop(0.6, '#050510');
+    gradient.addColorStop(1, '#020205');
     visualCtx.fillStyle = gradient;
-    visualCtx.fillRect(0, 0, visualCanvas.width, visualCanvas.height);
+    visualCtx.fillRect(0, 0, w, h);
 }
 
 function drawNebulas() {
-    if (!effects || !effects.nebulas || !visualCtx) return;
+    if (!effects || !effects.nebulas) return;
     
     for (var i = 0; i < effects.nebulas.length; i++) {
-        var nebula = effects.nebulas[i];
-        if (!nebula) continue;
+        var n = effects.nebulas[i];
+        if (!n) continue;
         
-        nebula.x += nebula.speed;
-        if (nebula.x < -nebula.size) nebula.x = (visualCanvas?.width || 1920) + nebula.size;
-        if (nebula.x > (visualCanvas?.width || 1920) + nebula.size) nebula.x = -nebula.size;
+        n.x += n.speed;
+        n.angle += n.speed * 0.5;
+        if (n.x < -n.size) n.x = w + n.size;
+        if (n.x > w + n.size) n.x = -n.size;
         
-        var gradient = visualCtx.createRadialGradient(nebula.x, nebula.y, 0, nebula.x, nebula.y, nebula.size);
-        gradient.addColorStop(0, nebula.color + Math.floor((nebula.alpha || 0.1) * 255).toString(16));
-        gradient.addColorStop(1, 'transparent');
-        visualCtx.fillStyle = gradient;
-        visualCtx.globalAlpha = nebula.alpha || 0.1;
-        visualCtx.fillRect(0, 0, visualCanvas.width, visualCanvas.height);
+        var g = visualCtx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.size);
+        g.addColorStop(0, n.color + Math.floor(n.alpha * 255).toString(16));
+        g.addColorStop(0.5, n.color2 + Math.floor(n.alpha * 150).toString(16));
+        g.addColorStop(1, 'transparent');
+        visualCtx.fillStyle = g;
+        visualCtx.globalAlpha = n.alpha || 0.1;
+        visualCtx.beginPath();
+        visualCtx.arc(n.x, n.y, n.size, 0, Math.PI * 2);
+        visualCtx.fill();
+    }
+    visualCtx.globalAlpha = 1;
+}
+
+function drawPortals() {
+    if (!effects || !effects.portals) return;
+    
+    for (var i = 0; i < effects.portals.length; i++) {
+        var p = effects.portals[i];
+        if (!p) continue;
+        
+        p.rotation += p.speed;
+        p.brightness += 0.02;
+        
+        visualCtx.save();
+        visualCtx.translate(p.x, p.y);
+        visualCtx.rotate(p.rotation);
+        
+        // Outer glow
+        var g = visualCtx.createRadialGradient(0, 0, 0, 0, 0, p.size);
+        g.addColorStop(0, 'transparent');
+        g.addColorStop(0.5, p.color + '44');
+        g.addColorStop(1, 'transparent');
+        visualCtx.fillStyle = g;
+        visualCtx.globalAlpha = 0.3 + Math.sin(p.brightness) * 0.2;
+        visualCtx.fillRect(-p.size, -p.size, p.size * 2, p.size * 2);
+        
+        // Swirl
+        visualCtx.strokeStyle = p.color;
+        visualCtx.lineWidth = 2;
+        visualCtx.globalAlpha = 0.5;
+        for (var j = 0; j < 3; j++) {
+            visualCtx.beginPath();
+            visualCtx.arc(0, 0, p.size * (0.3 + j * 0.3), j * 2, j * 2 + Math.PI);
+            visualCtx.stroke();
+        }
+        
+        visualCtx.restore();
     }
     visualCtx.globalAlpha = 1;
 }
 
 function drawStars() {
-    if (!effects || !effects.stars || !visualCtx) return;
+    if (!effects || !effects.stars) return;
     
     for (var i = 0; i < effects.stars.length; i++) {
-        var star = effects.stars[i];
-        if (!star) continue;
+        var s = effects.stars[i];
+        if (!s) continue;
         
-        star.twinkle += star.speed;
+        s.twinkle += s.z * 0.1;
+        var b = s.brightness * (0.4 + Math.sin(s.twinkle) * 0.4 + 0.2);
         
-        var twinkleBright = star.brightness * (0.4 + Math.sin(star.twinkle) * 0.4 + 0.2);
-        
-        visualCtx.fillStyle = star.color;
-        visualCtx.globalAlpha = twinkleBright;
+        visualCtx.fillStyle = s.color;
+        visualCtx.globalAlpha = b;
         visualCtx.beginPath();
-        visualCtx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        visualCtx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
         visualCtx.fill();
         
-        // Glow for big stars
-        if (star.size2 > 0) {
-            visualCtx.globalAlpha = twinkleBright * 0.3;
+        if (s.size > 1.5) {
+            visualCtx.globalAlpha = b * 0.3;
             visualCtx.beginPath();
-            visualCtx.arc(star.x, star.y, star.size2, 0, Math.PI * 2);
+            visualCtx.arc(s.x, s.y, s.size * 2.5, 0, Math.PI * 2);
             visualCtx.fill();
         }
     }
     visualCtx.globalAlpha = 1;
 }
 
-function drawFloatingObjects() {
-    if (!effects || !visualCtx || !visualCanvas) return;
+function drawMeteors() {
+    if (!effects || !effects.meteors || !visualCtx) return;
     
-    // Get game stats for spawning
-    var clickPower = 0;
-    try { clickPower = getClickPower(); } catch(e) {}
-    var cps = 0;
-    try { cps = getCps(); } catch(e) {}
-    var upgrades = 0;
-    try { upgrades = window.GAME ? Object.keys(window.GAME.upgrades || {}).length : 0; } catch(e) {}
-    
-    // Spawn floating particles based on upgrades
-    if (Math.random() < upgrades * 0.001 && effects.floating.length < upgrades * 2) {
-        effects.floating.push({
-            x: Math.random() * visualCanvas.width,
-            y: visualCanvas.height + 20,
-            targetY: Math.random() * visualCanvas.height * 0.7,
-            size: Math.random() * 4 + 2,
-            speed: Math.random() * 2 + 1,
-            color: getFloatingColor(),
-            alpha: 1,
-            type: Math.random() > 0.5 ? 'dust' : 'sparkle'
-        });
+    for (var i = effects.meteors.length - 1; i >= 0; i--) {
+        var m = effects.meteors[i];
+        if (!m) continue;
+        
+        m.trail.push({ x: m.x, y: m.y, alpha: 1 });
+        if (m.trail.length > 15) m.trail.shift();
+        
+        m.x -= m.vx;
+        m.y -= m.vy;
+        m.life -= 0.015;
+        
+        if (m.life <= 0 || m.y < -50) {
+            effects.meteors.splice(i, 1);
+            continue;
+        }
+        
+        // Trail
+        for (var j = 0; j < m.trail.length; j++) {
+            var t = m.trail[j];
+            if (!t) continue;
+            t.alpha -= 0.08;
+            if (t.alpha <= 0) continue;
+            visualCtx.fillStyle = m.color;
+            visualCtx.globalAlpha = t.alpha * 0.7;
+            visualCtx.beginPath();
+            visualCtx.arc(t.x, t.y, (j / m.trail.length) * m.size, 0, Math.PI * 2);
+            visualCtx.fill();
+        }
+        
+        // Head
+        visualCtx.fillStyle = '#fff';
+        visualCtx.globalAlpha = m.life;
+        visualCtx.beginPath();
+        visualCtx.arc(m.x, m.y, m.size, 0, Math.PI * 2);
+        visualCtx.fill();
     }
+    visualCtx.globalAlpha = 1;
+}
+
+function drawCracks() {
+    if (!effects || !effects.cracks || !visualCtx) return;
     
-    // Update and draw
+    for (var i = effects.cracks.length - 1; i >= 0; i--) {
+        var c = effects.cracks[i];
+        if (!c) continue;
+        
+        c.life -= 0.02;
+        if (c.life <= 0) {
+            effects.cracks.splice(i, 1);
+            continue;
+        }
+        
+        visualCtx.strokeStyle = '#fff';
+        visualCtx.globalAlpha = c.life * 0.7;
+        visualCtx.lineWidth = c.width || 2;
+        visualCtx.beginPath();
+        visualCtx.moveTo(c.x1, c.y1);
+        visualCtx.lineTo(c.x, c.y);
+        visualCtx.stroke();
+        
+        // Branches
+        if (c.branches) {
+            for (var j = 0; j < c.branches.length; j++) {
+                var b = c.branches[j];
+                visualCtx.globalAlpha = c.life * 0.5;
+                visualCtx.lineWidth = 1;
+                visualCtx.beginPath();
+                visualCtx.moveTo(c.x, c.y);
+                visualCtx.lineTo(b.x, b.y);
+                visualCtx.stroke();
+            }
+        }
+    }
+    visualCtx.globalAlpha = 1;
+}
+
+function drawSpirals() {
+    if (!effects || !effects.spirals || !visualCtx) return;
+    
+    for (var i = effects.spirals.length - 1; i >= 0; i--) {
+        var s = effects.spirals[i];
+        if (!s) continue;
+        
+        s.radius += s.grow;
+        s.angle += s.spin;
+        s.life -= 0.015;
+        
+        if (s.life <= 0 || s.radius > s.maxRadius) {
+            effects.spirals.splice(i, 1);
+            continue;
+        }
+        
+        visualCtx.strokeStyle = s.color;
+        visualCtx.globalAlpha = s.life;
+        visualCtx.lineWidth = 2;
+        visualCtx.beginPath();
+        for (var j = 0; j < s.arcs; j++) {
+            var a = s.angle + (Math.PI * 2 / s.arcs) * j;
+            var x = s.x + Math.cos(a) * s.radius;
+            var y = s.y + Math.sin(a) * s.radius * 0.3;
+            if (j === 0) visualCtx.moveTo(x, y);
+            else visualCtx.lineTo(x, y);
+        }
+        visualCtx.closePath();
+        visualCtx.stroke();
+    }
+    visualCtx.globalAlpha = 1;
+}
+
+function drawFloating() {
+    if (!effects || !effects.floating || !visualCtx) return;
+    
     for (var i = effects.floating.length - 1; i >= 0; i--) {
-        var obj = effects.floating[i];
-        if (!obj) continue;
+        var f = effects.floating[i];
+        if (!f) continue;
         
-        obj.y -= obj.speed;
-        obj.alpha -= 0.002;
+        f.y -= f.speed;
+        f.x += Math.sin(f.y * 0.01 + f.offset) * f.drift;
+        f.alpha -= 0.003;
         
-        if (obj.alpha <= 0 || obj.y < 0) {
+        if (f.alpha <= 0 || f.y < -20) {
             effects.floating.splice(i, 1);
             continue;
         }
         
-        visualCtx.fillStyle = obj.color;
-        visualCtx.globalAlpha = obj.alpha;
+        visualCtx.fillStyle = f.color;
+        visualCtx.globalAlpha = f.alpha;
         visualCtx.beginPath();
-        visualCtx.arc(obj.x, obj.y, obj.size, 0, Math.PI * 2);
+        visualCtx.arc(f.x, f.y, f.size, 0, Math.PI * 2);
         visualCtx.fill();
         
-        if (obj.type === 'sparkle') {
-            visualCtx.globalAlpha = obj.alpha * 0.5;
+        if (f.type === 'glow') {
+            visualCtx.globalAlpha = f.alpha * 0.3;
             visualCtx.beginPath();
-            visualCtx.arc(obj.x, obj.y, obj.size * 2, 0, Math.PI * 2);
+            visualCtx.arc(f.x, f.y, f.size * 2, 0, Math.PI * 2);
             visualCtx.fill();
         }
     }
     visualCtx.globalAlpha = 1;
 }
 
-function getFloatingColor() {
-    var colors = ['#88aaff', '#ffaa88', '#88ffaa', '#ff88ff', '#ffff88'];
-    return colors[Math.floor(Math.random() * colors.length)];
-}
-
 function drawComets() {
-    if (!effects || !effects.comets || !visualCtx || !visualCanvas) return;
-    
-    var w = visualCanvas.width;
-    var h = visualCanvas.height;
+    if (!effects || !effects.comets || !visualCtx) return;
     
     for (var i = effects.comets.length - 1; i >= 0; i--) {
-        var comet = effects.comets[i];
-        if (!comet) continue;
+        var c = effects.comets[i];
+        if (!c) continue;
         
-        if (!comet.trail) comet.trail = [];
+        if (!c.trail) c.trail = [];
+        c.trail.push({ x: c.x, y: c.y, b: c.brightness });
+        if (c.trail.length > (c.maxTrail || 30)) c.trail.shift();
         
-        if (comet.angle !== undefined && comet.speed !== undefined) {
-            comet.x += Math.cos(comet.angle) * comet.speed;
-            comet.y += Math.sin(comet.angle) * comet.speed;
-        }
+        c.x += Math.cos(c.angle) * c.speed;
+        c.y += Math.sin(c.angle) * c.speed;
         
-        if (comet.x !== undefined && comet.y !== undefined) {
-            comet.trail.push({ x: comet.x, y: comet.y, brightness: comet.brightness || 1 });
-            if (comet.trail.length > 25) comet.trail.shift();
-        }
-        
-        if (comet.x < -150 || comet.x > w + 150 || comet.y < -150 || comet.y > h + 150) {
+        if (c.x < -100 || c.x > w + 100 || c.y < -100 || c.y > h + 100) {
             effects.comets.splice(i, 1);
             continue;
         }
         
-        for (var j = 0; j < comet.trail.length; j++) {
-            var p = comet.trail[j];
-            if (!p) continue;
-            var alpha = (j / comet.trail.length) * (p.brightness || 1) * 0.7;
-            visualCtx.fillStyle = '#aaddff';
-            visualCtx.globalAlpha = alpha;
-            var size = (j / comet.trail.length) * (comet.size || 2);
+        for (var j = 0; j < c.trail.length; j++) {
+            var t = c.trail[j];
+            if (!t) continue;
+            visualCtx.fillStyle = '#acf';
+            visualCtx.globalAlpha = (j / c.trail.length) * (t.b || 1) * 0.6;
             visualCtx.beginPath();
-            visualCtx.arc(p.x, p.y, size, 0, Math.PI * 2);
+            visualCtx.arc(t.x, t.y, (j / c.trail.length) * (c.size || 2), 0, Math.PI * 2);
             visualCtx.fill();
         }
         
-        visualCtx.fillStyle = '#ffffff';
-        visualCtx.globalAlpha = (comet.brightness || 1);
+        visualCtx.fillStyle = '#fff';
+        visualCtx.globalAlpha = (c.brightness || 1);
         visualCtx.beginPath();
-        visualCtx.arc(comet.x, comet.y, (comet.size || 2) * 1.5, 0, Math.PI * 2);
-        visualCtx.fill();
-        
-        visualCtx.globalAlpha = (comet.brightness || 1) * 0.3;
-        visualCtx.beginPath();
-        visualCtx.arc(comet.x, comet.y, (comet.size || 2) * 3, 0, Math.PI * 2);
+        visualCtx.arc(c.x, c.y, (c.size || 2) * 1.5, 0, Math.PI * 2);
         visualCtx.fill();
     }
     visualCtx.globalAlpha = 1;
@@ -285,16 +411,16 @@ function drawParticles() {
         var p = effects.particles[i];
         if (!p) continue;
         
-        if (p.vx !== undefined) p.x += p.vx;
-        if (p.vy !== undefined) p.y += p.vy;
+        p.x += p.vx || 0;
+        p.y += p.vy || 0;
+        p.vy = (p.vy || 0) + 0.1;
         
-        if (!visualCanvas) continue;
-        if (!p.x || !p.y || p.x < -50 || p.x > visualCanvas.width + 50 || p.y < -50 || p.y > visualCanvas.height + 50) {
+        if (!w || !h || p.x < -50 || p.x > w + 50 || p.y < -50 || p.y > h + 50) {
             effects.particles.splice(i, 1);
             continue;
         }
         
-        visualCtx.fillStyle = p.color || '#ffffff';
+        visualCtx.fillStyle = p.color || '#fff';
         visualCtx.globalAlpha = 0.9;
         visualCtx.beginPath();
         visualCtx.arc(p.x, p.y, p.size || 3, 0, Math.PI * 2);
@@ -305,98 +431,135 @@ function drawParticles() {
 
 function drawAuras() {
     ensureEffects();
-    if (!visualCtx || !visualCanvas) return;
+    if (!visualCtx) return;
     
-    var cx = visualCanvas.width / 2;
-    var cy = visualCanvas.height / 2;
+    var power = 0, cps = 0, clicks = 0;
+    try { power = getClickPower() || 0; } catch(e) {}
+    try { cps = getCps() || 0; } catch(e) {}
+    try { clicks = window.GAME ? (window.GAME.clicks || 0) : 0; } catch(e) {}
     
-    var power = 0;
-    try { if (typeof getClickPower === 'function') power = getClickPower(); } catch(e) {}
-    
-    if (power > 10 && effects.auras) {
+    if (power > 5 && effects.auras) {
+        var color = getPowerColor(power);
         effects.auras.push({
-            x: cx, y: cy,
-            radius: 200,
-            maxRadius: 300 + power * 0.5,
-            alpha: 0.4,
-            speed: power > 100 ? 3 : 1,
-            color: getAuraColor(power),
-            type: power > 100 ? 'super' : 'normal'
+            x: w / 2, y: h / 2,
+            radius: 250, maxRadius: 350 + power * 0.3,
+            alpha: 0.5, speed: power > 200 ? 4 : 1,
+            color: color, rings: Math.floor(power / 50) + 1
         });
+        
+        // Ground cracks on big hits
+        if (power > 100 && Math.random() < 0.3 && effects.cracks) {
+            spawnCrack(power);
+        }
     }
     
     if (!effects.auras) return;
     
     for (var i = effects.auras.length - 1; i >= 0; i--) {
-        var aura = effects.auras[i];
-        if (!aura) continue;
+        var a = effects.auras[i];
+        if (!a) continue;
         
-        aura.radius += aura.speed || 1;
-        aura.alpha -= 0.008;
+        a.radius += a.speed;
+        a.alpha -= 0.012;
         
-        if (aura.alpha <= 0 || aura.radius > (aura.maxRadius || 300)) {
+        if (a.alpha <= 0 || a.radius > a.maxRadius) {
             effects.auras.splice(i, 1);
             continue;
         }
         
-        var gradient = visualCtx.createRadialGradient(aura.x || cx, aura.y || cy, 0, aura.x || cx, aura.y || cy, aura.radius || 200);
-        gradient.addColorStop(0, 'transparent');
-        gradient.addColorStop(0.6, aura.color || '#00aaff');
-        gradient.addColorStop(1, 'transparent');
-        
-        visualCtx.fillStyle = gradient;
-        visualCtx.globalAlpha = aura.alpha || 0.3;
-        visualCtx.beginPath();
-        visualCtx.arc(aura.x || cx, aura.y || cy, aura.radius || 200, 0, Math.PI * 2);
-        visualCtx.fill();
-        
-        if (aura.type === 'super') {
-            visualCtx.strokeStyle = aura.color || '#ff8800';
-            visualCtx.lineWidth = 2;
-            visualCtx.globalAlpha = aura.alpha * 0.5;
+        for (var j = 0; j < (a.rings || 1); j++) {
+            var g = visualCtx.createRadialGradient(a.x, a.y, 0, a.x, a.y, a.radius - j * 30);
+            g.addColorStop(0, 'transparent');
+            g.addColorStop(0.7, a.color);
+            g.addColorStop(1, 'transparent');
+            visualCtx.fillStyle = g;
+            visualCtx.globalAlpha = a.alpha * (1 - j * 0.3);
             visualCtx.beginPath();
-            visualCtx.arc(aura.x || cx, aura.y || cy, aura.radius * 0.7, 0, Math.PI * 2);
-            visualCtx.stroke();
+            visualCtx.arc(a.x, a.y, a.radius - j * 30, 0, Math.PI * 2);
+            visualCtx.fill();
         }
     }
     visualCtx.globalAlpha = 1;
 }
 
-function getAuraColor(power) {
-    if (power > 1000) return '#ff44ff';
-    if (power > 500) return '#ff8800';
-    if (power > 100) return '#44aaff';
-    return '#00aaff';
+function getPowerColor(power) {
+    if (power > 2000) return '#f0f';
+    if (power > 1000) return '#f80';
+    if (power > 500) return '#f44';
+    if (power > 200) return '#4af';
+    if (power > 50) return '#4f8';
+    return '#08f';
+}
+
+function spawnCrack(power) {
+    if (!effects.cracks) return;
+    var cx = w / 2, cy = h / 2;
+    var angle = Math.random() * Math.PI * 2;
+    var len = 20 + power * 0.3;
+    effects.cracks.push({
+        x: cx, y: cy, x1: cx, y1: cy,
+        x: cx + Math.cos(angle) * len,
+        y: cy + Math.sin(angle) * len,
+        life: 1, width: 1 + power / 100,
+        branches: Math.random() > 0.5 ? [
+            { x: cx + Math.cos(angle + 0.5) * len * 0.5, y: cy + Math.sin(angle + 0.5) * len * 0.5 },
+            { x: cx + Math.cos(angle - 0.5) * len * 0.5, y: cy + Math.sin(angle - 0.5) * len * 0.5 }
+        ] : null
+    });
 }
 
 function drawShockwaves() {
     if (!effects || !effects.shockwaves || !visualCtx) return;
     
     for (var i = effects.shockwaves.length - 1; i >= 0; i--) {
-        var sw = effects.shockwaves[i];
-        if (!sw) continue;
+        var s = effects.shockwaves[i];
+        if (!s) continue;
         
-        sw.radius += sw.speed || 5;
-        sw.alpha -= 0.025;
+        s.radius += s.speed;
+        s.alpha -= 0.03;
         
-        if (sw.alpha <= 0) {
+        if (s.alpha <= 0) {
             effects.shockwaves.splice(i, 1);
             continue;
         }
         
-        visualCtx.strokeStyle = sw.color || '#00aaff';
-        visualCtx.globalAlpha = sw.alpha || 1;
-        visualCtx.lineWidth = sw.width || 3;
+        visualCtx.strokeStyle = s.color;
+        visualCtx.globalAlpha = s.alpha;
+        visualCtx.lineWidth = s.width;
         visualCtx.beginPath();
-        visualCtx.arc(sw.x || 0, sw.y || 0, sw.radius || 80, 0, Math.PI * 2);
+        visualCtx.arc(s.x || w/2, s.y || h/2, s.radius, 0, Math.PI * 2);
         visualCtx.stroke();
         
-        if (sw.width > 4) {
+        if (s.width > 4) {
             visualCtx.lineWidth = 1;
             visualCtx.beginPath();
-            visualCtx.arc(sw.x || 0, sw.y || 0, sw.radius * 0.7, 0, Math.PI * 2);
+            visualCtx.arc(s.x || w/2, s.y || h/2, s.radius * 0.7, 0, Math.PI * 2);
             visualCtx.stroke();
         }
+    }
+    visualCtx.globalAlpha = 1;
+}
+
+function drawBlasts() {
+    if (!effects || !effects.blasts || !visualCtx) return;
+    
+    for (var i = effects.blasts.length - 1; i >= 0; i--) {
+        var b = effects.blasts[i];
+        if (!b) continue;
+        
+        b.radius += 8;
+        b.life -= 0.03;
+        
+        if (b.life <= 0) {
+            effects.blasts.splice(i, 1);
+            continue;
+        }
+        
+        visualCtx.fillStyle = b.color;
+        visualCtx.globalAlpha = b.life;
+        visualCtx.beginPath();
+        visualCtx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+        visualCtx.fill();
     }
     visualCtx.globalAlpha = 1;
 }
@@ -406,286 +569,289 @@ var planetPulse = 0;
 var ringRotation = 0;
 
 function drawEpicPlanet() {
-    if (!visualCtx || !visualCanvas) return;
+    if (!visualCtx || !w || !h) return;
     
-    var cx = visualCanvas.width / 2;
-    var cy = visualCanvas.height / 2;
-    var baseR = 80;
-    
+    var cx = w / 2, cy = h / 2, baseR = 80;
     planetRotation += 0.008;
-    planetPulse += 0.02;
-    ringRotation += 0.005;
+    planetPulse += 0.025;
+    ringRotation += 0.004;
     
-    var energy = 0;
-    try { energy = window.GAME ? window.GAME.energy : 0; } catch(e) {}
+    var energy = 0, upgrades = 0, clicks = 0;
+    try { energy = (window.GAME ? window.GAME.energy : 0) || 0; } catch(e) {}
+    try { upgrades = (window.GAME ? Object.keys(window.GAME.upgrades || {}).length : 0) || 0; } catch(e) {}
+    try { clicks = (window.GAME ? window.GAME.clicks : 0) || 0; } catch(e) {}
     
-    var upgrades = 0;
-    try { upgrades = window.GAME ? Object.keys(window.GAME.upgrades || {}).length : 0; } catch(e) {}
-    
-    var planetScale = 1 + Math.log(Math.max(1, energy + 1)) / 20;
-    var planetR = baseR * Math.min(2.5, planetScale);
+    var scale = 1 + Math.log(Math.max(1, energy + 1)) / 18;
+    var r = baseR * Math.min(3, scale);
     
     var zone = 'v';
-    try { zone = window.GAME ? window.GAME.currentZone : 'v'; } catch(e) {}
+    try { zone = (window.GAME ? window.GAME.currentZone : 'v') || 'v'; } catch(e) {}
     
-    var colors = getZoneColors(zone);
-    var glowColors = getGlowColors(zone);
+    var colors = getPlanetColors(zone);
+    var glowColors = getGlow(zone);
     
-    // Outer energy field based on upgrades
-    if (upgrades > 5) {
-        drawEnergyRings(cx, cy, planetR, upgrades);
-    }
+    // Dynamic rings
+    if (upgrades > 3) drawPlanetRings(cx, cy, r, upgrades);
     
-    // Corona glow
-    var glowR = planetR * (1.8 + Math.sin(planetPulse) * 0.1);
-    var glow = visualCtx.createRadialGradient(cx, cy, planetR * 0.5, cx, cy, glowR);
+    // Epic glow
+    var glowR = r * (2 + Math.sin(planetPulse) * 0.15);
+    var glow = visualCtx.createRadialGradient(cx, cy, r * 0.3, cx, cy, glowR);
     glow.addColorStop(0, glowColors.inner);
-    glow.addColorStop(0.5, glowColors.mid + '66');
+    glow.addColorStop(0.4, glowColors.mid + '99');
+    glow.addColorStop(0.7, glowColors.mid + '33');
     glow.addColorStop(1, 'transparent');
     visualCtx.fillStyle = glow;
-    visualCtx.globalAlpha = 0.6;
-    visualCtx.fillRect(cx - glowR - 30, cy - glowR - 30, (glowR + 30) * 2, (glowR + 30) * 2);
-    visualCtx.globalAlpha = 1;
+    visualCtx.globalAlpha = 0.7;
+    visualCtx.fillRect(cx - glowR, cy - glowR, glowR * 2, glowR * 2);
     
-    // Corona arcs
-    for (var i = 0; i < 4 + Math.floor(upgrades / 10); i++) {
-        var angle = planetRotation * (i % 2 === 0 ? 1.5 : -1.5) + (Math.PI * 2 / 4) * i;
-        var arcR = planetR * (1.3 + Math.sin(planetPulse + i) * 0.15);
-        var arcWidth = 2 + (i % 2) * 2;
-        
-        visualCtx.strokeStyle = i % 2 === 0 ? '#88ccff' : colors.accent;
-        visualCtx.globalAlpha = 0.4 - i * 0.08;
-        visualCtx.lineWidth = arcWidth;
+    // Corona
+    var coronaCount = 4 + Math.floor(upgrades / 8);
+    for (var i = 0; i < coronaCount; i++) {
+        var ang = planetRotation * (i % 2 ? 1.8 : -1.5) + (Math.PI * 2 / coronaCount) * i;
+        var arcR = r * (1.35 + Math.sin(planetPulse + i * 0.7) * 0.2);
+        var alpha = 0.5 - i * 0.1;
+        if (alpha < 0) alpha = 0;
+        visualCtx.strokeStyle = i % 2 ? '#aaf' : colors.accent;
+        visualCtx.globalAlpha = alpha;
+        visualCtx.lineWidth = 3 - i * 0.4;
         visualCtx.beginPath();
-        visualCtx.arc(cx, cy, arcR, angle - 0.4, angle + 0.4);
+        visualCtx.arc(cx, cy, arcR, ang - 0.5, ang + 0.5);
         visualCtx.stroke();
     }
     
-    // Main planet body with layers
-    var bodyGrad = visualCtx.createRadialGradient(cx - planetR * 0.35, cy - planetR * 0.35, 0, cx, cy, planetR);
-    bodyGrad.addColorStop(0, colors.highlight);
-    bodyGrad.addColorStop(0.3, colors.core);
-    bodyGrad.addColorStop(0.7, colors.surface);
-    bodyGrad.addColorStop(1, colors.mantle);
-    visualCtx.fillStyle = bodyGrad;
+    // Planet body
+    var grad = visualCtx.createRadialGradient(cx - r * 0.35, cy - r * 0.35, 0, cx, cy, r);
+    grad.addColorStop(0, colors.high);
+    grad.addColorStop(0.25, colors.core);
+    grad.addColorStop(0.7, colors.surface);
+    grad.addColorStop(1, colors.mantle);
+    visualCtx.fillStyle = grad;
     visualCtx.beginPath();
-    visualCtx.arc(cx, cy, planetR, 0, Math.PI * 2);
+    visualCtx.arc(cx, cy, r, 0, Math.PI * 2);
     visualCtx.fill();
     
-    // Surface details
-    drawPlanetSurface(cx, cy, planetR, planetRotation);
+    // Surface bands
+    for (var j = 0; j < 4; j++) {
+        visualCtx.strokeStyle = 'rgba(255,255,255,0.08)';
+        visualCtx.lineWidth = 1;
+        visualCtx.beginPath();
+        var by = cy + Math.sin(planetRotation * 2 + j * 1.5) * r * 0.5;
+        visualCtx.moveTo(cx - r * 0.8, by);
+        visualCtx.bezierCurveTo(cx - r * 0.4, by + 6, cx + r * 0.4, by - 6, cx + r * 0.8, by);
+        visualCtx.stroke();
+    }
     
-    // Inner highlight
-    visualCtx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+    // Highlight
+    visualCtx.fillStyle = 'rgba(255,255,255,0.28)';
     visualCtx.beginPath();
-    visualCtx.arc(cx - planetR * 0.35, cy - planetR * 0.35, planetR * 0.35, 0, Math.PI * 2);
+    visualCtx.arc(cx - r * 0.35, cy - r * 0.35, r * 0.35, 0, Math.PI * 2);
     visualCtx.fill();
     
     visualCtx.globalAlpha = 1;
 }
 
-function drawEnergyRings(cx, cy, r, upgrades) {
-    var numRings = Math.min(8, Math.floor(upgrades / 5));
-    for (var i = 0; i < numRings; i++) {
-        var ringR = r * (1.5 + i * 0.25);
-        var rotation = ringRotation * (i % 2 === 0 ? 1 : -1) + i;
-        
-        visualCtx.strokeStyle = '#' + (['4488ff', '44ff88', 'ff8844', 'ff44ff', '88ffff'][i % 5]);
-        visualCtx.globalAlpha = 0.2 - i * 0.02;
-        visualCtx.lineWidth = 2;
-        visualCtx.setLineDash([10 - i, 5 + i]);
+function drawPlanetRings(cx, cy, r, upgrades) {
+    var count = Math.min(10, Math.floor(upgrades / 4));
+    for (var i = 0; i < count; i++) {
+        var ringR = r * (1.6 + i * 0.3);
+        var rot = ringRotation * (i % 2 ? 1.2 : -1);
+        var col = ['#48f', '#4f8', '#f48', '#f4f', '#4ff', '#ff4'][i % 6];
+        visualCtx.strokeStyle = col;
+        visualCtx.globalAlpha = 0.25 - i * 0.025;
+        visualCtx.lineWidth = 1.5;
+        visualCtx.setLineDash([8 - i, 4 + i]);
         visualCtx.beginPath();
-        visualCtx.ellipse(cx, cy, ringR, ringR * 0.3, rotation, 0, Math.PI * 2);
+        visualCtx.ellipse(cx, cy, ringR, ringR * 0.25, rot, 0, Math.PI * 2);
         visualCtx.stroke();
     }
     visualCtx.setLineDash([]);
     visualCtx.globalAlpha = 1;
 }
 
-function drawPlanetSurface(cx, cy, r, rotation) {
-    // Rotating bands
-    for (var i = 0; i < 3; i++) {
-        var bandY = cy + Math.sin(rotation * 2 + i * 2) * r * 0.4;
-        visualCtx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-        visualCtx.lineWidth = 1;
-        visualCtx.beginPath();
-        visualCtx.moveTo(cx - r * 0.8, bandY);
-        visualCtx.bezierCurveTo(cx - r * 0.4, bandY + 5, cx + r * 0.4, bandY - 5, cx + r * 0.8, bandY);
-        visualCtx.stroke();
-    }
-}
-
-function getZoneColors(zone) {
-    var colors = {
-        v: { core: '#6688aa', mantle: '#446688', surface: '#557799', highlight: '#99aadd', accent: '#88aacc' },
-        q: { core: '#aa66ff', mantle: '#8844dd', surface: '#9966ee', highlight: '#cc88ff', accent: '#ddaaff' },
-        t: { core: '#ffaa44', mantle: '#dd8822', surface: '#ee9944', highlight: '#ffcc66', accent: '#ffbb66' },
-        m: { core: '#66aaff', mantle: '#4488dd', surface: '#5599ee', highlight: '#88bbff', accent: '#99ccff' },
-        l: { core: '#ffff66', mantle: '#dddd44', surface: '#eeee55', highlight: '#ffff88', accent: '#ffff99' },
-        d: { core: '#aa44aa', mantle: '#882288', surface: '#994499', highlight: '#cc66cc', accent: '#dd77dd' },
-        e: { core: '#ffffff', mantle: '#cccccc', surface: '#dddddd', highlight: '#ffffff', accent: '#eeeeee' },
-        inf: { core: '#ff44ff', mantle: '#cc22cc', surface: '#ee33ee', highlight: '#ff77ff', accent: '#ff88ff' }
+function getPlanetColors(zone) {
+    var c = {
+        v: { core: '#678', mantle: '#456', surface: '#567', high: '#89a', accent: '#8ab' },
+        q: { core: '#a6f', mantle: '#84d', surface: '#96e', high: '#c8f', accent: '#daf' },
+        t: { core: '#fa4', mantle: '#d82', surface: '#e94', high: '#fc6', accent: '#fb5' },
+        m: { core: '#6af', mantle: '#48d', surface: '#59e', high: '#8cf', accent: '#9de' },
+        l: { core: '#ff6', mantle: '#dd4', surface: '#ee5', high: '#ff8', accent: '#ff9' },
+        d: { core: '#a4a', mantle: '#828', surface: '#949', high: '#c6c', accent: '#d8d' },
+        e: { core: '#fff', mantle: '#ccc', surface: '#ddd', high: '#fff', accent: '#eee' },
+        inf: { core: '#f4f', mantle: '#c2c', surface: '#e3e', high: '#f7f', accent: '#f8f' }
     };
-    return colors[zone] || colors.v;
+    return c[zone] || c.v;
 }
 
-function getGlowColors(zone) {
-    var colors = {
-        v: { inner: '#88aacc', mid: '#4488aa' },
-        q: { inner: '#cc88ff', mid: '#8844dd' },
-        t: { inner: '#ffcc66', mid: '#cc8822' },
-        m: { inner: '#88bbff', mid: '#4488dd' },
-        l: { inner: '#ffff88', mid: '#dddd44' },
-        d: { inner: '#cc66cc', mid: '#882288' },
-        e: { inner: '#ffffff', mid: '#aaaaaa' },
-        inf: { inner: '#ff77ff', mid: '#cc22cc' }
+function getGlow(zone) {
+    var g = {
+        v: { inner: '#9bd', mid: '#468' },
+        q: { inner: '#d9f', mid: '#84d' },
+        t: { inner: '#fd8', mid: '#d82' },
+        m: { inner: '#9df', mid: '#48d' },
+        l: { inner: '#ff9', mid: '#dd4' },
+        d: { inner: '#d9d', mid: '#828' },
+        e: { inner: '#fff', mid: '#aaa' },
+        inf: { inner: '#f9f', mid: '#c2c' }
     };
-    return colors[zone] || colors.v;
+    return g[zone] || g.v;
 }
 
-function drawUpgradeVisuals() {
-    if (!visualCtx || !visualCanvas) return;
+function drawUpgradeEffects() {
+    if (!visualCtx) return;
     
-    var upgrades = 0;
-    var energy = 0;
-    try {
-        upgrades = window.GAME ? Object.keys(window.GAME.upgrades || {}).length : 0;
-        energy = window.GAME ? window.GAME.energy : 0;
-    } catch(e) {}
+    var upgrades = 0, clicks = 0;
+    try { upgrades = (window.GAME ? Object.keys(window.GAME.upgrades || {}).length : 0) || 0; } catch(e) {}
+    try { clicks = (window.GAME ? window.GAME.clicks : 0) || 0; } catch(e) {}
     
-    // Add particles based on upgrades
-    if (Math.random() < upgrades * 0.002) {
-        spawnUpgradeParticle(upgrades);
+    // Particles flying up
+    if (Math.random() < upgrades * 0.003) {
+        spawnFloatingParticle(upgrades);
     }
     
-    // Shooting stars more often with upgrades
-    if (Math.random() < upgrades * 0.001 + energy * 0.00001) {
-        spawnShootingStar();
+    // Meteors
+    if (Math.random() < upgrades * 0.002 + clicks * 0.00001) {
+        spawnMeteor();
+    }
+    
+    // Spirals on big events
+    if (Math.random() < upgrades * 0.001) {
+        spawnSpiral();
     }
 }
 
-function spawnUpgradeParticle(upgrades) {
+function spawnFloatingParticle(upgrades) {
     ensureEffects();
-    if (!effects || !visualCanvas) return;
-    
-    var cx = visualCanvas.width / 2;
-    var cy = visualCanvas.height / 2;
+    if (!effects.floating) return;
+    var cx = w / 2, cy = h / 2;
     var angle = Math.random() * Math.PI * 2;
-    var dist = 150 + upgrades * 10;
-    
-    if (effects.particles) {
-        effects.particles.push({
-            x: cx + Math.cos(angle) * dist,
-            y: cy + Math.sin(angle) * dist,
-            vx: (Math.random() - 0.5) * 2,
-            vy: Math.random() * -2 - 1,
-            size: Math.random() * 3 + 1,
-            color: '#ffffff',
-            life: 1
-        });
-    }
+    var dist = 200 + upgrades * 15;
+    effects.floating.push({
+        x: cx + Math.cos(angle) * dist,
+        y: cy + Math.sin(angle) * dist,
+        speed: 1 + Math.random() * 2,
+        drift: (Math.random() - 0.5) * 0.5,
+        offset: Math.random() * Math.PI * 2,
+        size: Math.random() * 4 + 1,
+        alpha: 0.9,
+        color: ['#8af', '#f8a', '#a8f', '#fa8', '#8fa'][Math.floor(Math.random() * 5)],
+        type: Math.random() > 0.5 ? 'glow' : 'dust'
+    });
 }
 
-function spawnShootingStar() {
+function spawnMeteor() {
     ensureEffects();
-    if (!effects || !visualCanvas) return;
-    
-    var w = visualCanvas.width;
-    var h = visualCanvas.height;
-    
-    if (effects.particles) {
-        effects.particles.push({
-            x: Math.random() * w,
-            y: Math.random() * h * 0.4,
-            vx: 15 + Math.random() * 10,
-            vy: 5 + Math.random() * 3,
-            size: Math.random() * 2 + 1,
-            color: '#ffffff'
-        });
-    }
+    if (!effects.meteors) return;
+    effects.meteors.push({
+        x: Math.random() * w,
+        y: -30,
+        vx: 3 + Math.random() * 4,
+        vy: 2 + Math.random() * 3,
+        size: Math.random() * 2 + 1,
+        color: '#fff',
+        life: 1,
+        trail: []
+    });
 }
 
-function spawnComet() {
+function spawnSpiral() {
     ensureEffects();
-    if (!effects || !visualCanvas) return;
-    
-    var w = visualCanvas.width;
-    var h = visualCanvas.height;
-    var startSide = Math.random() > 0.5;
-    
-    if (effects.comets) {
-        effects.comets.push({
-            x: startSide ? -80 : w + 80,
-            y: Math.random() * h * 0.8,
-            angle: startSide ? Math.PI * 0.15 : Math.PI * 0.85,
-            speed: Math.random() * 5 + 3,
-            size: Math.random() * 3 + 2,
-            brightness: 1,
-            trail: []
-        });
-    }
+    if (!effects.spirals) return;
+    effects.spirals.push({
+        x: w / 2, y: h / 2,
+        radius: 50, grow: 3, spin: 0.08,
+        life: 1, maxRadius: 200,
+        arcs: 3, color: '#f80', angle: 0
+    });
 }
 
 function addClickBurst(x, y, power, isCrit) {
-    if (!visualCtx || !visualCanvas) return;
-    
+    if (!visualCtx || !w || !h) return;
     ensureEffects();
     
-    var w = visualCanvas.width;
-    var h = visualCanvas.height;
-    var cx = x || w / 2;
-    var cy = y || h / 2;
-    var color = isCrit ? '#ff6600' : '#00aaff';
-    var size = isCrit ? 25 : 12;
+    var cx = x || w / 2, cy = y || h / 2;
+    var color = isCrit ? '#f60' : '#0af';
+    var count = isCrit ? 30 : 15;
+    var burstColor = isCrit ? 'orange' : 'blue';
     
+    // Shockwave
     if (effects.shockwaves) {
         effects.shockwaves.push({
             x: cx, y: cy,
-            radius: isCrit ? 120 : 80,
-            alpha: 1,
-            speed: isCrit ? 12 : 6,
-            color: color,
-            width: isCrit ? 8 : 4
+            radius: isCrit ? 150 : 80,
+            alpha: 1, speed: isCrit ? 15 : 7,
+            color: color, width: isCrit ? 10 : 5
         });
     }
     
-    var numParticles = isCrit ? 25 : 12;
-    for (var i = 0; i < numParticles; i++) {
-        if (!effects.particles) break;
-        var angle = Math.random() * Math.PI * 2;
-        var spd = 30 + Math.random() * 80;
-        var col = isCrit ? (['#ff6600', '#ff8800', '#ffaa00'][Math.floor(Math.random() * 3)]) : (['#00ccff', '#00ffcc', '#00aaff'][Math.floor(Math.random() * 3)]);
-        effects.particles.push({
-            x: cx, y: cy,
-            vx: Math.cos(angle) * spd,
-            vy: Math.sin(angle) * spd,
-            size: isCrit ? 6 : 3,
-            color: col
-        });
-    }
-    
-    // Extra burst for big clicks
-    if (power > 100) {
-        for (var j = 0; j < 10; j++) {
-            if (!effects.particles) break;
-            var a = Math.random() * Math.PI * 2;
-            var s = 20 + Math.random() * 40;
+    // Particles
+    if (effects.particles) {
+        for (var i = 0; i < count; i++) {
+            var ang = Math.random() * Math.PI * 2;
+            var spd = 25 + Math.random() * 70;
+            var col = isCrit ? ['#f60', '#f80', '#fa0'][Math.floor(Math.random() * 3)] : ['#0cf', '#0fc', '#08f'][Math.floor(Math.random() * 3)];
             effects.particles.push({
                 x: cx, y: cy,
-                vx: Math.cos(a) * s,
-                vy: Math.sin(a) * s,
-                size: 2,
-                color: '#ffff00'
+                vx: Math.cos(ang) * spd,
+                vy: Math.sin(ang) * spd,
+                size: isCrit ? 6 : 3,
+                color: col
             });
         }
+    }
+    
+    // Big hit spiral
+    if (power > 50 && effects.spirals) {
+        effects.spirals.push({
+            x: cx, y: cy,
+            radius: 30, grow: 4, spin: 0.1,
+            life: 1, maxRadius: 150 + power * 0.2,
+            arcs: isCrit ? 4 : 2,
+            color: color, angle: 0
+        });
+    }
+    
+    // Extra for crits
+    if (isCrit && effects.blasts) {
+        effects.blasts.push({
+            x: cx, y: cy,
+            radius: 10, color: '#f80', life: 1
+        });
     }
 }
 
 setInterval(function() {
     ensureEffects();
-    if (Math.random() < 0.3) spawnComet();
-    if (Math.random() < 0.1) spawnShootingStar();
-}, 800);
+    // Spawn comet
+    if (Math.random() < 0.25) {
+        var start = Math.random() > 0.5;
+        if (effects.comets) {
+            effects.comets.push({
+                x: start ? -50 : w + 50,
+                y: Math.random() * h * 0.7,
+                angle: start ? 0.15 : 0.85,
+                speed: 4 + Math.random() * 4,
+                size: 2 + Math.random() * 3,
+                brightness: 1,
+                trail: [], maxTrail: 30
+            });
+        }
+    }
+    
+    // Spawn meteor
+    if (Math.random() < 0.08) {
+        spawnMeteor();
+    }
+    
+    // Portal pulse
+    if (effects.portals && Math.random() < 0.1) {
+        for (var i = 0; i < effects.portals.length; i++) {
+            var p = effects.portals[i];
+            if (p && Math.random() < 0.3) {
+                // Flash portal
+            }
+        }
+    }
+}, 600);
 
 window.initVisuals = initVisuals;
 window.addClickBurst = addClickBurst;
