@@ -70,6 +70,7 @@ function playDamage() { playSound('square', 0.15, 100, 50, 0.2); }
 function playHeal() { playSound('sine', 0.3, 400, 800, 0.12); }
 function playBlackHole() { playSound('sine', 0.5, 100, 50, 0.15); }
 function playShootingStar() { playSound('triangle', 0.3, 600, 1000, 0.08); }
+function playShoot() { playSound('triangle', 0.05, 800, 1200, 0.08); }
 function playAchievement() {
     playSound('sine', 0.15, 587, 1175, 0.12);
     setTimeout(() => playSound('sine', 0.15, 784, 1568, 0.12), 150);
@@ -119,6 +120,7 @@ window.playDamage = playDamage;
 window.playHeal = playHeal;
 window.playBlackHole = playBlackHole;
 window.playShootingStar = playShootingStar;
+window.playShoot = playShoot;
 window.playAchievement = playAchievement;
 window.playMilestone = playMilestone;
 window.toggleSound = toggleSound;
