@@ -1,6 +1,7 @@
 // ========================
 // ENHANCED BOSS FIGHT SYSTEM
 // ========================
+let keys = {};
 let bossActive = false;
 let bossCanvas, bossCtx;
 let bossIndex = 0, bossCurrent, bossHp, bossMaxHp;
@@ -235,6 +236,8 @@ function handleBossKeyUp(e) {
 
 function quitBoss() {
     bossActive = false;
+    window.removeEventListener('keydown', handleBossKeyDown);
+    window.removeEventListener('keyup', handleBossKeyUp);
     document.getElementById('bossArena').classList.remove('active');
 }
 
@@ -835,3 +838,4 @@ window.quitBoss = quitBoss;
 window.bossLoop = bossLoop;
 window.BOSS_PATTERNS = BOSS_PATTERNS;
 window.PLAYER_SPECIALS = PLAYER_SPECIALS;
+window.bossActive = false;

@@ -3,6 +3,7 @@
 // ========================
 let audioCtx = null;
 let soundEnabled = true;
+let musicPlaying = false;
 
 function initAudio() {
     if (audioCtx) return;
@@ -33,7 +34,7 @@ function playSuccess() { playSound('sine', 0.2, 523, 1047, 0.12); }
 function playToast() { playSound('sine', 0.15, 400, 600, 0.08); }
 function playButton() { playSound('triangle', 0.05, 500, 700, 0.06); }
 function playCPS() { playSound('sine', 0.02, 800, 0, 0.02); }
-function playCombo() { playSound('sine', 0.1, 400, 600 + clickCombo * 50, 0.08); }
+function playCombo() { playSound('sine', 0.1, 400, 600 + (window.clickCombo || 1) * 50, 0.08); }
 
 // Ability sounds
 function playAbility() { playSound('sine', 0.1, 523, 1047, 0.12); }

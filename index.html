@@ -18,13 +18,7 @@
             user-select: none;
         }
         
-        #bgCanvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 0;
-            cursor: pointer;
-        }
+        /* Canvas created by visual.js */
         
         .header {
             position: fixed;
@@ -35,8 +29,10 @@
             justify-content: space-between;
             align-items: center;
             padding: 0.8rem 1.5rem;
-            background: linear-gradient(180deg, rgba(10,15,40,0.95), rgba(10,15,40,0));
+            background: linear-gradient(180deg, rgba(10,20,50,0.95) 0%, rgba(10,20,50,0.6) 50%, rgba(10,20,50,0));
             z-index: 100;
+            border-bottom: 1px solid rgba(0,150,255,0.15);
+            backdrop-filter: blur(3px);
         }
         
         .title {
@@ -72,6 +68,11 @@
             flex-direction: column;
             gap: 0.4rem;
             z-index: 100;
+            padding: 0.8rem;
+            background: rgba(10,20,40,0.7);
+            border-radius: 8px;
+            border: 1px solid rgba(60,80,150,0.3);
+            backdrop-filter: blur(5px);
         }
         
         .menu-btn {
@@ -134,8 +135,43 @@
             border-radius: 50%;
             background: radial-gradient(circle at 30% 30%, #4a6a8a, #2a426a, #111122);
             cursor: pointer;
-            box-shadow: 0 0 30px rgba(0, 150, 255, 0.3), inset 0 0 30px rgba(0, 0, 0, 0.5);
-            transition: transform 0.1s;
+            box-shadow: 
+                0 0 30px rgba(0, 150, 255, 0.3),
+                0 0 60px rgba(0, 150, 255, 0.15),
+                inset 0 0 30px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s;
+            position: relative;
+            overflow: visible;
+        }
+        
+        .orb::before {
+            content: '';
+            position: absolute;
+            inset: -10px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0,200,255,0.2) 0%, transparent 70%);
+            animation: orbPulse 2s ease-in-out infinite;
+            z-index: -1;
+        }
+        
+        .orb::after {
+            content: '';
+            position: absolute;
+            inset: -25px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(100,150,255,0.1) 0%, transparent 60%);
+            animation: orbRing 3s ease-in-out infinite;
+            z-index: -2;
+        }
+        
+        @keyframes orbPulse {
+            0%,100% { transform: scale(1); opacity: 0.6; }
+            50% { transform: scale(1.05); opacity: 1; }
+        }
+        
+        @keyframes orbRing {
+            0%,100% { transform: scale(0.95); opacity: 0.4; }
+            50% { transform: scale(1.1); opacity: 0.8; }
         }
         
         .planet-click-area {
@@ -149,11 +185,27 @@
             cursor: pointer;
             z-index: 100;
             background: transparent;
-            transition: transform 0.1s;
+            transition: all 0.3s;
+            box-shadow: 0 0 40px rgba(0,200,255,0.15);
+        }
+        
+        .planet-click-area::before {
+            content: '';
+            position: absolute;
+            inset: -20px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0,200,255,0.1) 0%, transparent 70%);
+            animation: clickPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes clickPulse {
+            0%,100% { transform: scale(0.9); opacity: 0.5; }
+            50% { transform: scale(1.15); opacity: 1; }
         }
         
         .planet-click-area:active {
-            transform: translate(-50%, -50%) scale(0.95);
+            transform: translate(-50%, -50%) scale(0.96);
+            box-shadow: 0 0 60px rgba(0,200,255,0.3);
         }
         
         .orb:active { transform: scale(0.95); }
@@ -172,11 +224,12 @@
             right: -420px;
             width: 400px;
             height: 100vh;
-            background: rgba(10,15,35,0.98);
-            border-left: 1px solid #334466;
+            background: rgba(8,12,30,0.98);
+            border-left: 1px solid rgba(60,90,180,0.4);
             z-index: 200;
             transition: right 0.3s;
             overflow-y: auto;
+            box-shadow: -5px 0 30px rgba(0,0,0,0.5);
         }
         
         .panel.active { right: 0; }
@@ -363,7 +416,8 @@
     </style>
 </head>
 <body>
-    <canvas id="bgCanvas"></canvas>
+    <!-- Canvas created by visual.js -->
+    <canvas id="bgCanvas" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;"></canvas>
     
     <div class="header">
         <div class="title">QUANTUM GENESIS</div>
@@ -405,7 +459,7 @@
     
     <div class="panel" id="panel-shop">
         <div class="panel-header">
-            <div class="panel-title">SHOP</div>
+            <div class="panel-title">BOOSTS</div>
             <button class="panel-close" onclick="closePanel()">×</button>
         </div>
         <div class="shop-tabs" id="shopTabs">
@@ -484,18 +538,13 @@
     <script src="game.js"></script>
     
 <script>
-        // Wait for all scripts to load, then initialize
         function initGame() {
             if (!window.GAME || !window.UPGRADES) {
                 setTimeout(initGame, 50);
                 return;
             }
             
-            // ========================
-            // INITIALIZATION
-            // ========================
-            
-            // Initialize Visual System (EPIC backgrounds!)
+            // Initialize Visual System
             if (typeof initVisuals === 'function') {
                 initVisuals();
             }
@@ -503,53 +552,33 @@
             // Load game
             loadGame();
             applySettings();
-            // initBG() - handled by visual.js now
-            if (typeof initRelicShop === 'function') initRelicShop();
             calculateRelicBonuses();
             updateDisplay();
             renderAbilityBar();
             
-            // Game loops
+            // CPS tick
             setInterval(() => {
-                if (typeof getCps === 'function' && window.GAME && !window.bossActive) {
-                    const cps = getCps();
-                    if (cps > 0) {
-                        window.GAME.energy += cps / 10;
-                        window.GAME.lifetimeEnergy += cps / 10;
-                        updateDisplay();
-                    }
-                    if (typeof checkAchievements === 'function') checkAchievements();
-                    if (typeof window.clickCombo === 'number' && window.clickCombo > 1) {
-                        window.clickCombo -= 0.02;
-                        if (window.clickCombo < 1) window.clickCombo = 1;
-                        window.GAME.combo = window.clickCombo;
-                    }
+                var cps = getCps();
+                if (cps > 0 && window.GAME && !window.bossActive) {
+                    window.GAME.energy += cps / 10;
+                    window.GAME.lifetimeEnergy += cps / 10;
+                    updateDisplay();
                 }
             }, 100);
             
+            // Combo decay
             setInterval(() => {
-                if (typeof updateParticles === 'function') updateParticles();
-                if (typeof applyScreenShake === 'function') applyScreenShake();
-            }, 16);
-            
-            setInterval(() => {
-                if (window.abilityCooldowns) {
-                    Object.keys(window.abilityCooldowns).forEach(k => window.abilityCooldowns[k] = Math.max(0, window.abilityCooldowns[k] - 1));
-                    if (typeof renderAbilityBar === 'function') renderAbilityBar();
+                if (window.clickCombo > 1) {
+                    window.clickCombo -= 0.02;
+                    if (window.clickCombo < 1) window.clickCombo = 1;
+                    window.GAME.combo = window.clickCombo;
                 }
-            }, 1000);
+            }, 100);
             
-            setInterval(() => { if (typeof saveGame === 'function') saveGame(false); }, 30000);
-            
-            window.addEventListener('resize', () => {
-                if (bgCanvas) {
-                    bgCanvas.width = window.innerWidth;
-                    bgCanvas.height = window.innerHeight;
-                }
-            });
+            // Auto save
+            setInterval(() => saveGame(false), 30000);
         }
         
-        // Start initialization
         initGame();
     </script>
 </body>

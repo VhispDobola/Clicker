@@ -162,20 +162,21 @@ function updateParticles() {
     const maxParticles = 50;
     while (clickParticles.length > maxParticles) {
         const old = clickParticles.shift();
-        const el = document.getElementById('particle-0');
+        const el = document.getElementById('particle-' + clickParticles.length);
         if (el) el.remove();
     }
 }
 
 function applyScreenShake() {
-    if (screenShake > 0 && bgCanvas) {
+    var canvas = window.visualCanvas || document.getElementById('visualCanvas') || document.getElementById('bgCanvas');
+    if (screenShake > 0 && canvas) {
         const shakeX = (Math.random() - 0.5) * screenShake;
         const shakeY = (Math.random() - 0.5) * screenShake;
-        bgCanvas.style.transform = `translate(${shakeX}px, ${shakeY}px)`;
+        canvas.style.transform = `translate(${shakeX}px, ${shakeY}px)`;
         screenShake *= 0.9;
         if (screenShake < 0.5) {
             screenShake = 0;
-            bgCanvas.style.transform = '';
+            canvas.style.transform = '';
         }
     }
 }

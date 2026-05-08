@@ -32,25 +32,23 @@ function toast(msg, type = 'success') {
 }
 
 function showClickText(power, isCrit) {
-    if (!clickTextEl) {
-        clickTextEl = document.createElement('div');
-        clickTextEl.style.cssText = 'position:fixed;pointer-events:none;z-index:50;transition:all 0.8s ease-out;font-weight:bold;opacity:0;';
-        document.body.appendChild(clickTextEl);
-    }
-    const px = window.innerWidth / 2;
-    const py = window.innerHeight / 2;
-    clickTextEl.textContent = '+' + formatNumber(power) + (isCrit ? ' CRIT!' : '');
-    clickTextEl.style.left = px + 'px';
-    clickTextEl.style.top = py + 'px';
-    clickTextEl.style.color = isCrit ? '#ff6600' : '#00ffaa';
-    clickTextEl.style.fontSize = isCrit ? '1.8rem' : '1.2rem';
-    clickTextEl.style.transform = 'translate(-50%,0)';
-    clickTextEl.style.opacity = '1';
+    const el = document.createElement('div');
+    el.style.cssText = 'position:fixed;pointer-events:none;z-index:50;font-weight:bold;transition:all 0.8s ease-out;';
+    el.textContent = '+' + formatNumber(power) + (isCrit ? ' CRIT!' : '');
+    el.style.left = (window.innerWidth / 2) + 'px';
+    el.style.top = (window.innerHeight / 2) + 'px';
+    el.style.color = isCrit ? '#ff6600' : '#00ffaa';
+    el.style.fontSize = isCrit ? '1.8rem' : '1.2rem';
+    el.style.transform = 'translate(-50%,0)';
+    el.style.opacity = '1';
+    document.body.appendChild(el);
     
-    setTimeout(() => {
-        clickTextEl.style.transform = 'translate(-50%,-60px)';
-        clickTextEl.style.opacity = '0';
-    }, 50);
+    requestAnimationFrame(() => {
+        el.style.transform = 'translate(-50%,-60px)';
+        el.style.opacity = '0';
+    });
+    
+    setTimeout(() => el.remove(), 800);
 }
 
 function openShop() {
@@ -76,10 +74,10 @@ function closePanel() {
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
 }
 
-function switchShopTab(tab) {
+function switchShopTab(tab, evt) {
     playPanelSwitch();
     document.querySelectorAll('.shop-tab').forEach(b => b.classList.remove('active'));
-    event.target.classList.add('active');
+    (evt || window.event).target.classList.add('active');
     renderShopTab(tab);
 }
 
@@ -133,7 +131,10 @@ function renderShopTab(tab) {
     content.appendChild(grid);
 }
 
-function renderAbilitiesShop(content) {
+function renderAbilitiesShop() {
+    const content = document.getElementById('shopContent');
+    content.innerHTML = '';
+    
     const grid = document.createElement('div');
     grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.5rem;';
     
@@ -151,7 +152,7 @@ function renderAbilitiesShop(content) {
                 GAME.abilities[i] = true;
                 playUpgrade();
                 saveGame(false);
-                renderAbilitiesShop(content);
+                renderAbilitiesShop();
             };
             card.style.cursor = 'pointer';
         }

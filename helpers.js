@@ -88,13 +88,8 @@ let relicBonuses = {
 };
 
 function calculateRelicBonuses() {
-    relicBonuses = {
-        clickPower: 0, cps: 0, critChance: 0, critMult: 0, combo: 0, maxCombo: 0,
-        bossDmg: 0, bossHpReduce: 0, bossLifesteal: 0, bossResurrect: 0,
-        prestigeBonus: 0, energyGain: 0, synergyBonus: 0, moltenChance: 0,
-        offlineStore: 0, duplicate: 0, timeScale: 0, globalBonus: 0,
-        randomBonus: 0, autoPull: 0, compress: 0, permanent: 0, setBonus: 0
-    };
+    // Mutate existing object instead of replacing
+    Object.keys(relicBonuses).forEach(k => relicBonuses[k] = 0);
     
     // Count total relics for synergy bonus
     const totalRelics = Object.keys(GAME.relics || {}).reduce((sum, id) => sum + (GAME.relics[id] || 0), 0);
@@ -102,8 +97,8 @@ function calculateRelicBonuses() {
     // Process main RELICS
     processRelicSet(RELICS);
     
-    // Process COSMIC_RELICS with synergy
-    processRelicSet(COSMIC_RELICS, totalRelics);
+    // Process COSMIC_RELICS with synergy (empty array if not defined)
+    processRelicSet(typeof COSMIC_RELICS !== 'undefined' ? COSMIC_RELICS : [], totalRelics);
     
     // Check relic sets
     if (typeof RELIC_SETS !== 'undefined') {
@@ -133,13 +128,16 @@ function calculateRelicBonuses() {
     Object.keys(tagCounts).forEach(tag => {
         if (tagCounts[tag] >= 3) {
             const boost = 0.5;
-            if (tag === 'click') relicBonuses.clickPower += relicBonuses.clickPower * boost;
-            if (tag === 'cps') relicBonuses.cps += relicBonuses.cps * boost;
-            if (tag === 'crit') { relicBonuses.critChance += relicBonuses.critChance * boost; relicBonuses.critMult += relicBonuses.critMult * boost; }
-            if (tag === 'combo') relicBonuses.combo += relicBonuses.combo * boost;
-            if (tag === 'boss') { relicBonuses.bossDmg += relicBonuses.bossDmg * boost; }
-            if (tag === 'prestige') relicBonuses.prestigeBonus += relicBonuses.prestigeBonus * boost;
-            if (tag === 'energyGain') relicBonuses.energyGain += relicBonuses.energyGain * boost;
+            const tagBoost = {
+                click: () => { relicBonuses.clickPower = relicBonuses.clickPower * (1 + boost); },
+                cps: () => { relicBonuses.cps = relicBonuses.cps * (1 + boost); },
+                crit: () => { relicBonuses.critChance = relicBonuses.critChance * (1 + boost); relicBonuses.critMult = relicBonuses.critMult * (1 + boost); },
+                combo: () => { relicBonuses.combo = relicBonuses.combo * (1 + boost); },
+                boss: () => { relicBonuses.bossDmg = relicBonuses.bossDmg * (1 + boost); },
+                prestige: () => { relicBonuses.prestigeBonus = relicBonuses.prestigeBonus * (1 + boost); },
+                energyGain: () => { relicBonuses.energyGain = relicBonuses.energyGain * (1 + boost); }
+            };
+            if (tagBoost[tag]) tagBoost[tag]();
         }
     });
     
@@ -297,6 +295,7 @@ function getBossDamage() {
 }
 function getBossHpMultiplier() { return Math.max(0.1, 1 - relicBonuses.bossHpReduce); }
 function getBossLastStand() { return GAME.upgrades['b4'] > 0; }
+function getBossResurrect() { return relicBonuses.bossResurrect || 0; }
 
 // Make functions global
 window.formatNumber = formatNumber;
@@ -319,6 +318,7 @@ window.getBossDodge = getBossDodge;
 window.getBossDamage = getBossDamage;
 window.getBossHpMultiplier = getBossHpMultiplier;
 window.getBossLastStand = getBossLastStand;
+window.getBossResurrect = getBossResurrect;
 window.relicBonuses = relicBonuses;
 
 // ========================
