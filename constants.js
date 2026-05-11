@@ -229,15 +229,32 @@ const ABILITIES = [
 ];
 
 // ========================
-// BOSSES
+// BOSSES - 14 Unique Bosses
 // ========================
 const BOSSES = [
-    {id: 'VoidTitan', name: 'Void Titan', hp: 300, speed: 3, dmg: 10, color: '#ff3300', pattern: 'sweep', desc: 'Shoots fireballs'},
-    {id: 'QuantumHorror', name: 'Quantum Horror', hp: 500, speed: 3.5, dmg: 15, color: '#aa00ff', pattern: 'split', desc: 'Splits at 50% HP'},
-    {id: 'TimeGuardian', name: 'Time Guardian', hp: 800, speed: 3, dmg: 20, color: '#ffaa00', pattern: 'time', desc: 'Time spiral attacks'},
-    {id: 'MatterLord', name: 'Matter Lord', hp: 1200, speed: 4, dmg: 25, color: '#00aaff', pattern: 'bounce', desc: 'Bouncy missiles'},
-    {id: 'LightEmperor', name: 'Light Emperor', hp: 1800, speed: 4.5, dmg: 35, color: '#ffff00', pattern: 'laser', desc: 'Deadly laser beams'},
+    {id: 'VoidAssassin', name: 'Void Assassin', hp: 510, className: 'VoidAssassin', color: '#1a1a2e', phases: 3, desc: 'Shadow clones and teleport strikes'},
+    {id: 'VirusQueen', name: 'The Virus Queen', hp: 1000, className: 'VirusQueen', color: '#ff00ff', phases: 4, desc: 'Infection zones and bio-organic shield'},
+    {id: 'ThunderEmperor', name: 'Thunder Emperor', hp: 600, className: 'ThunderEmperor', color: '#8888ff', phases: 3, desc: 'Lightning bolts and thunder clouds'},
+    {id: 'TempestLord', name: 'Tempest Lord', hp: 550, className: 'TempestLord', color: '#4488ff', phases: 3, desc: 'Wind projectiles and tornado zones'},
+    {id: 'NexusCore', name: 'Nexus Core', hp: 650, className: 'NexusCore', color: '#00ffff', phases: 3, desc: 'Homing energy orbs and laser beams'},
+    {id: 'MagmaSovereign', name: 'Magma Sovereign', hp: 1100, className: 'MagmaSovereign', color: '#ff4400', phases: 3, desc: 'Fireballs and lava pools'},
+    {id: 'ImmortalPhoenix', name: 'Immortal Phoenix', hp: 1200, className: 'ImmortalPhoenix', color: '#ff6600', phases: 4, desc: 'Fire spiral and resurrection'},
+    {id: 'IceTyrant', name: 'Ice Tyrant', hp: 700, className: 'IceTyrant', color: '#88ddff', phases: 3, desc: 'Ice shards and frozen zones'},
+    {id: 'EternalGuardian', name: 'Eternal Guardian', hp: 510, className: 'EternalGuardian', color: '#8800ff', phases: 3, desc: 'Orb sweeps and radial bursts'},
+    {id: 'EternalDragon', name: 'Eternal Dragon', hp: 800, className: 'EternalDragon', color: '#ff4400', phases: 3, desc: 'Fire breath and dragon dive'},
+    {id: 'CrystallineDestroyer', name: 'Crystalline Destroyer', hp: 750, className: 'CrystallineDestroyer', color: '#00ffaa', phases: 3, desc: 'Crystal shards and prism beams'},
+    {id: 'Chronomancer', name: 'Chronomancer', hp: 750, className: 'Chronomancer', color: '#8888ff', phases: 3, desc: 'Time clones and time zones'},
+    {id: 'BladeMaster', name: 'Blade Master', hp: 700, className: 'BladeMaster', color: '#ff8800', phases: 3, desc: 'Blade rings and slash combos'},
+    {id: 'CyberOverlord', name: 'Cyber Overlord', hp: 900, className: 'CyberOverlord', color: '#00ff00', phases: 3, desc: 'Drone swarms and data corruption'},
 ];
+
+const BOSS_CONFIG = {
+    introDuration: 180,
+    phase2Threshold: 0.60,
+    phase3Threshold: 0.30,
+    globalHealthMult: 0.76,
+    weakenedHealthMult: 0.65
+};
 
 // Make global
 window.GAME = GAME;

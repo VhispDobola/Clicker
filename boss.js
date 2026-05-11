@@ -158,9 +158,27 @@ const PLAYER_SPECIALS = {
     super: { name: 'Super Mode', key: 'x', cooldown: 30000, duration: 5000, damageMult: 3, speedMult: 1.5 }
 };
 
+// ========================
+// NEW BOSS SYSTEM INTEGRATION
+// ========================
+let currentBoss = null;
+
+function createNewBoss(bossIndex) {
+    const bossConfig = BOSSES[bossIndex % BOSSES.length];
+    const BossClass = window[bossConfig.className];
+    if (BossClass) {
+        const boss = new BossClass();
+        boss.canvasWidth = window.innerWidth;
+        boss.canvasHeight = window.innerHeight;
+        boss.game = { player: { x: playerX, y: playerY, width: 30, height: 30 } };
+        return boss;
+    }
+    return new VoidAssassin();
+}
+
 function startBoss() {
     initAudio();
-    playBossStart();
+    if (window.bossAudio) window.bossAudio.playBossStart();
     playBossMusic();
     bossActive = true;
     bossUsedLastStand = false;
@@ -181,13 +199,26 @@ function startBoss() {
     
     bossIndex = Math.min(GAME.bossesWon, BOSSES.length - 1);
     bossCurrent = BOSSES[bossIndex];
-    const bossData = BOSS_PATTERNS[bossCurrent.id] || BOSS_PATTERNS.VoidTitan;
+    
+    // Create new boss instance
+    currentBoss = createNewBoss(bossIndex);
+    if (currentBoss) {
+        currentBoss.canvasWidth = bossCanvas.width;
+        currentBoss.canvasHeight = bossCanvas.height;
+    }
     
     bossMaxHp = bossCurrent.hp * getBossHpMultiplier();
     bossHp = bossMaxHp;
     bossMaxTime = 60 + bossIndex * 15;
     bossTime = bossMaxTime;
     bossStartTime = Date.now();
+    
+    // Update boss name in HUD
+    const bossNameEl = document.getElementById('bossName');
+    if (bossNameEl && bossCurrent) {
+        bossNameEl.textContent = bossCurrent.name;
+    }
+    
     playerMaxHp = 3 + getBossDodge();
     playerHp = playerMaxHp;
     playerX = bossCanvas.width / 2;
@@ -259,9 +290,36 @@ function bossLoop() {
     document.getElementById('bossHpFill').style.width = (bossHp / bossMaxHp * 100) + '%';
     updateBossHud();
     
+    // Update and draw new boss system
+    if (currentBoss) {
+        currentBoss.game = { player: { x: playerX, y: playerY, width: 30, height: 30 } };
+        currentBoss.canvasWidth = bossCanvas.width;
+        currentBoss.canvasHeight = bossCanvas.height;
+        currentBoss.update();
+        
+        // Draw the new boss
+        currentBoss.draw(bossCtx);
+        
+        // Draw intro if active
+        if (currentBoss.showingIntro) {
+            currentBoss.drawIntro(bossCtx, bossCanvas.width, bossCanvas.height);
+        }
+        
+        // Update boss HP from new system
+        bossHp = currentBoss.health;
+        bossPhase = currentBoss.phase;
+        
+        // Copy projectiles from new boss to collision system
+        bossProjectiles = [...currentBoss.projectiles];
+    }
+    
     updateBossPhase();
     handlePlayerMovement(dt);
-    updateBossAi(dt, now);
+    if (currentBoss) {
+        // Don't use old AI - new boss has its own attacks
+    } else {
+        updateBossAi(dt, now);
+    }
     updateProjectiles(dt);
     updateBossAttacks(dt);
     updateVisuals(dt);
@@ -398,7 +456,7 @@ function triggerBossAttack(name, attack) {
                         type: 'boss', damage: attack.damage, color: '#ff6600',
                         size: 12, glow: true
                     });
-                    playShoot();
+                    window.playShoot();
                 }, i * 150);
             }
             break;
@@ -813,6 +871,7 @@ function bossWin() {
     bossActive = false;
     GAME.bossesWon++;
     playBossWin();
+    if (window.bossAudio) window.bossAudio.playBossDefeat();
     
     const acReward = 10 + GAME.bossesWon * 5;
     GAME.ascensionCrystals = (GAME.ascensionCrystals || 0) + acReward;
@@ -830,6 +889,7 @@ function bossLose() {
     bossActive = false;
     document.getElementById('bossArena').classList.remove('active');
     playError();
+    if (window.bossAudio) window.bossAudio.playError();
     toast('Boss defeated you! Try again.', 'error');
 }
 
