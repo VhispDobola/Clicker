@@ -12,14 +12,23 @@ class EternalGuardian extends BossBase {
         this.dashCooldown = 0;
         this.targetX = 500;
         
+        this.crystalPlates = [];
+        this.plateAngle = 0;
+        
         this.initAttackCooldowns = () => {
-            this.attackCooldowns = { orb: 0, burst: 0, dash: 0, mega: 0 };
+            this.attackCooldowns = { 
+                orb: 0, burst: 0, dash: 0, mega: 0, 
+                laser: 0, plates: 0, pulse: 0 
+            };
         };
         this.initAttackCooldowns();
     }
     
     initAttackCooldowns() {
-        this.attackCooldowns = { orb: 0, burst: 0, dash: 0, mega: 0 };
+        this.attackCooldowns = { 
+            orb: 0, burst: 0, dash: 0, mega: 0, 
+            laser: 0, plates: 0, pulse: 0 
+        };
     }
     
     movement() {
@@ -30,6 +39,7 @@ class EternalGuardian extends BossBase {
         this.x += dx;
         
         this.energyCorePulse = (this.energyCorePulse + 0.05) % (Math.PI * 2);
+        this.plateAngle += 0.02;
     }
     
     runAttacks() {
@@ -51,6 +61,10 @@ class EternalGuardian extends BossBase {
                 this.radialBurst();
                 this.attackCooldowns.burst = 120;
             }
+            if (this.attackCooldowns.pulse <= 0) {
+                this.energyCorePulseAttack();
+                this.attackCooldowns.pulse = 200;
+            }
         }
         
         if (this.phase === 2) {
@@ -61,6 +75,14 @@ class EternalGuardian extends BossBase {
             if (this.attackCooldowns.burst <= 0) {
                 this.radialBurst();
                 this.attackCooldowns.burst = 90;
+            }
+            if (this.attackCooldowns.laser <= 0) {
+                this.laserSweep(px);
+                this.attackCooldowns.laser = 180;
+            }
+            if (this.attackCooldowns.plates <= 0) {
+                this.spawnCrystalPlates();
+                this.attackCooldowns.plates = 300;
             }
             if (this.attackCooldowns.dash <= 0 && Math.random() < 0.01) {
                 this.dashAttack(px, py);
@@ -77,11 +99,21 @@ class EternalGuardian extends BossBase {
                 this.megaBurst();
                 this.attackCooldowns.mega = 60;
             }
+            if (this.attackCooldowns.laser <= 0) {
+                this.laserSweep(px);
+                this.attackCooldowns.laser = 120;
+            }
+            if (this.attackCooldowns.pulse <= 0) {
+                this.energyCorePulseAttack();
+                this.attackCooldowns.pulse = 100;
+            }
             if (this.attackCooldowns.dash <= 0 && Math.random() < 0.02) {
                 this.dashAttack(px, py);
                 this.attackCooldowns.dash = 100;
             }
         }
+        
+        this.updateCrystalPlates();
     }
     
     cosmicOrbSweep(targetX, targetY) {
@@ -153,8 +185,104 @@ class EternalGuardian extends BossBase {
         if (window.bossAudio) window.bossAudio.playTeleport();
     }
     
+    laserSweep(targetY) {
+        const bx = this.x + this.width / 2;
+        const by = this.y + this.height / 2;
+        
+        for (let i = 0; i < 20; i++) {
+            const x = 50 + i * (this.canvasWidth - 100) / 20;
+            const proj = new Projectile(x, by, 0, 0, 15, '#ff00ff', 8, ProjectileBehavior.LASER);
+            proj.laser = true;
+            this.projectiles.push(proj);
+        }
+        
+        this.effects.push({
+            x: bx, y: by, type: 'laserBeam',
+            update: function() { return false; },
+            draw: function(ctx) {
+                ctx.save();
+                ctx.strokeStyle = '#ff00ff';
+                ctx.lineWidth = 4;
+                ctx.globalAlpha = 0.8;
+                ctx.beginPath();
+                ctx.moveTo(0, by);
+                ctx.lineTo(ctx.canvas.width, by);
+                ctx.stroke();
+                ctx.restore();
+            }
+        });
+    }
+    
+    spawnCrystalPlates() {
+        const bx = this.x + this.width / 2;
+        const by = this.y + this.height / 2;
+        
+        for (let i = 0; i < 5; i++) {
+            this.crystalPlates.push({
+                angle: (Math.PI * 2 / 5) * i,
+                radius: 150,
+                size: 20,
+                rotation: 0
+            });
+        }
+    }
+    
+    updateCrystalPlates() {
+        const bx = this.x + this.width / 2;
+        const by = this.y + this.height / 2;
+        
+        for (let i = this.crystalPlates.length - 1; i >= 0; i--) {
+            const plate = this.crystalPlates[i];
+            plate.angle += 0.03;
+            plate.rotation += 0.05;
+            
+            const px = bx + Math.cos(plate.angle) * plate.radius;
+            const py = by + Math.sin(plate.angle) * plate.radius;
+            
+            plate.x = px;
+            plate.y = py;
+        }
+    }
+    
+    energyCorePulseAttack() {
+        const bx = this.x + this.width / 2;
+        const by = this.y + this.height / 2;
+        
+        for (let i = 0; i < 3; i++) {
+            setTimeout(() => {
+                const pulseRadius = 50 + i * 80;
+                const proj = new Projectile(bx, by, 0, 0, 12, '#ffffff', pulseRadius);
+                proj.pulseRing = true;
+                proj.age = 0;
+                proj.lifetime = 40;
+                this.projectiles.push(proj);
+            }, i * 200);
+        }
+        
+        this.particleSystem.emitBurst(bx, by, '#8800ff', 30, 15, 60);
+    }
+    
+    drawCrystalPlates(ctx) {
+        for (const plate of this.crystalPlates) {
+            ctx.save();
+            ctx.translate(plate.x, plate.y);
+            ctx.rotate(plate.rotation);
+            ctx.fillStyle = '#aa44ff';
+            ctx.globalAlpha = 0.7;
+            ctx.beginPath();
+            ctx.moveTo(0, -plate.size);
+            ctx.lineTo(plate.size * 0.866, plate.size * 0.5);
+            ctx.lineTo(-plate.size * 0.866, plate.size * 0.5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+    
     draw(ctx) {
         this.particleSystem.draw(ctx);
+        
+        this.drawCrystalPlates(ctx);
         
         ctx.save();
         const gradient = ctx.createRadialGradient(this.x + this.width/2, this.y + this.height/2, 0, this.x + this.width/2, this.y + this.height/2, this.width);

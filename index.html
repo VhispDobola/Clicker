@@ -256,7 +256,7 @@
             cursor: pointer;
         }
         
-        .panel-content { padding: 1rem; }
+        .panel-content { padding: 1rem; max-height: calc(100vh - 120px); overflow-y: auto; }
         
         .toast {
             position: fixed;
@@ -439,6 +439,10 @@
         <button class="menu-btn" onclick="startBoss()"><span class="key">B</span> BOSS</button>
     </div>
     
+    <style id="dynamicStyles">
+        /* Base styles - will evolve with upgrades */
+    </style>
+    
     <div class="game-container">
         <div class="orb-wrapper">
             <!-- Clickable EPIC planet overlay -->
@@ -463,11 +467,12 @@
             <button class="panel-close" onclick="closePanel()">×</button>
         </div>
         <div class="shop-tabs" id="shopTabs">
-            <button class="shop-tab active" onclick="switchShopTab('click')">Click</button>
-            <button class="shop-tab" onclick="switchShopTab('gen')">Gen</button>
-            <button class="shop-tab" onclick="switchShopTab('combat')">Combat</button>
-            <button class="shop-tab" onclick="switchShopTab('special')">Special</button>
-            <button class="shop-tab" onclick="switchShopTab('abilities')">Abilities</button>
+            <button class="shop-tab active" onclick="switchShopTab('click', event)">Click</button>
+            <button class="shop-tab" onclick="switchShopTab('gen', event)">Gen</button>
+            <button class="shop-tab" onclick="switchShopTab('combat', event)">Combat</button>
+            <button class="shop-tab" onclick="switchShopTab('special', event)">Special</button>
+            <button class="shop-tab" onclick="switchShopTab('abilities', event)">Abilities</button>
+            <button class="shop-tab" onclick="switchShopTab('relics', event)">Relics</button>
         </div>
         <div class="panel-content" id="shopContent"></div>
     </div>
@@ -528,6 +533,10 @@
     <div class="ability-bar" id="abilityBar"></div>
     
     <!-- Load all modules -->
+    <!-- Constants and Helpers first -->
+    <script src="constants.js"></script>
+    <script src="helpers.js"></script>
+    
     <!-- Core Systems -->
     <script src="boss-projectile.js"></script>
     <script src="boss-attacks.js"></script>
@@ -551,17 +560,14 @@
     <script src="boss-blade-master.js"></script>
     <script src="boss-chronomancer.js"></script>
     
-    
-    <script src="constants.js"></script>
-    <script src="helpers.js"></script>
     <script src="audio.js"></script>
-    <script src="save.js"></script>
     <script src="ui.js"></script>
-    <script src="visual.js"></script>
+    <script src="save.js"></script>
     <script src="boss.js"></script>
     <script src="game.js"></script>
+    <script src="visual.js"></script>
     
-<script>
+    <script>
         function initGame() {
             if (!window.GAME || !window.UPGRADES) {
                 setTimeout(initGame, 50);
@@ -590,17 +596,76 @@
                 }
             }, 100);
             
-            // Combo decay
+            // Combo decay - rate controlled by relic bonus
             setInterval(() => {
                 if (window.clickCombo > 1) {
-                    window.clickCombo -= 0.02;
-                    if (window.clickCombo < 1) window.clickCombo = 1;
+                    const decayRate = 0.02 * (1 - (relicBonuses.comboDecay || 0));
+                    window.clickCombo = Math.max(1, window.clickCombo - decayRate);
                     window.GAME.combo = window.clickCombo;
                 }
             }, 100);
             
             // Auto save
             setInterval(() => saveGame(false), 30000);
+            
+            // UI Evolution update
+            setInterval(() => {
+                try {
+                    var up = (typeof getUpgradeCounts === 'function') ? getUpgradeCounts() : {total:0, click:0, gen:0, special:0};
+                    var totalL = up.total || 0;
+                    var clickL = up.click || 0;
+                    var genL = up.gen || 0;
+                    var specialL = up.special || 0;
+                    
+                    var styleEl = document.getElementById('dynamicStyles');
+                    if (!styleEl) return;
+                    
+                    var css = '';
+                    
+                    // Button evolution
+                    if (totalL > 5) {
+                        css += '.btn, .menu-btn, .shop-tab { border-radius: 6px; transition: all 0.3s; } ';
+                    }
+                    if (totalL > 15) {
+                        css += '.btn, .menu-btn { box-shadow: 0 0 10px rgba(0,200,255,0.3); } ';
+                    }
+                    if (totalL > 30) {
+                        css += '.btn, .menu-btn, .shop-tab { border-color: #00ccff88; background: rgba(0,40,80,0.8); } ';
+                    }
+                    if (totalL > 50) {
+                        css += '.btn, .menu-btn { background: linear-gradient(135deg, rgba(0,60,120,0.9), rgba(0,30,80,0.9)); box-shadow: 0 0 15px rgba(0,200,255,0.4), inset 0 1px 0 rgba(255,255,255,0.1); } ';
+                    }
+                    if (specialL > 3) {
+                        css += '.btn, .menu-btn, .shop-tab { animation: uiPulse 2s ease-in-out infinite; } @keyframes uiPulse { 0%,100% { box-shadow: 0 0 10px rgba(255,100,255,0.3); } 50% { box-shadow: 0 0 20px rgba(255,100,255,0.6); } } ';
+                    }
+                    
+                    // Energy display glow
+                    if (genL > 5) {
+                        css += '.energy-display { text-shadow: 0 0 20px #00ddff66, 0 0 40px #00ddff33; } ';
+                    }
+                    if (genL > 20) {
+                        css += '.energy-display { text-shadow: 0 0 25px #00ff88aa, 0 0 50px #00ff8844; } ';
+                    }
+                    
+                    // Panel evolution
+                    if (totalL > 20) {
+                        css += '.panel { background: linear-gradient(180deg, rgba(10,20,50,0.98), rgba(5,10,30,0.98)); } ';
+                    }
+                    if (totalL > 40) {
+                        css += '.panel { border-left: 1px solid rgba(100,150,255,0.5); box-shadow: -5px 0 30px rgba(0,100,200,0.2); } ';
+                    }
+                    if (specialL > 2) {
+                        css += '.panel { animation: panelGlow 3s ease-in-out infinite; } @keyframes panelGlow { 0%,100% { box-shadow: -5px 0 30px rgba(0,100,200,0.2); } 50% { box-shadow: -5px 0 30px rgba(150,50,255,0.3); } } ';
+                    }
+                    
+                    // Stats evolution
+                    if (clickL > 10) {
+                        css += '.stat .val { text-shadow: 0 0 5px currentColor; } ';
+                    }
+                    
+                    styleEl.textContent = css;
+                } catch(e) {}
+            }, 500);
         }
         
         initGame();

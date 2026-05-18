@@ -49,6 +49,8 @@ class Projectile {
         this.timePhase = 0;
         this.weaving = false;
         this.laser = false;
+        this.bladeTrail = false;
+        this.shadowTrail = false;
     }
 
     update(canvasWidth, canvasHeight) {
@@ -152,6 +154,31 @@ class Projectile {
             ctx.beginPath();
             ctx.moveTo(this.x, this.y);
             ctx.lineTo(this.x - Math.cos(angle) * 50, this.y - Math.sin(angle) * 50);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+        
+        if (this.pulseRing) {
+            const progress = this.age / this.lifetime;
+            const ringSize = this.radius * (1 - progress);
+            const alpha = 1 - progress;
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = 4;
+            ctx.globalAlpha = alpha;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, ringSize, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+            return;
+        }
+        
+        if (this.bladeTrail) {
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = 3;
+            ctx.globalAlpha = 0.6;
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y);
+            ctx.lineTo(this.x - this.dx * 3, this.y - this.dy * 3);
             ctx.stroke();
             ctx.globalAlpha = 1;
         }

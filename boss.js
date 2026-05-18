@@ -177,10 +177,12 @@ function createNewBoss(bossIndex) {
 }
 
 function startBoss() {
+    if (bossActive) return;
     initAudio();
     if (window.bossAudio) window.bossAudio.playBossStart();
     playBossMusic();
     bossActive = true;
+    lastFrameTime = 0;
     bossUsedLastStand = false;
     bossParticles = [];
     playerTrail = [];
@@ -240,6 +242,7 @@ function startBoss() {
 function handleBossKeyDown(e) {
     if (!bossActive) return;
     keys[e.key.toLowerCase()] = true;
+    keys[e.code] = true;
     
     if (e.key === 'Shift' && playerDash === 0) {
         playerDash = PLAYER_SPECIALS.dash.duration;
@@ -261,8 +264,46 @@ function handleBossKeyDown(e) {
     }
 }
 
+let lastPlayerShot = 0;
+const PLAYER_SHOOT_COOLDOWN = 150;
+
+function playerShoot() {
+    const now = Date.now();
+    if (now - lastPlayerShot < PLAYER_SHOOT_COOLDOWN) return;
+    lastPlayerShot = now;
+    
+    const bossCenterX = currentBoss ? currentBoss.x + currentBoss.width / 2 : bossX;
+    const bossCenterY = currentBoss ? currentBoss.y + currentBoss.height / 2 : bossY;
+    
+    const toBossX = bossCenterX - playerX;
+    const toBossY = bossCenterY - playerY;
+    const dist = Math.sqrt(toBossX * toBossX + toBossY * toBossY);
+    
+    const speed = 500;
+    let vx = 0, vy = -speed;
+    
+    if (dist > 0) {
+        vx = (toBossX / dist) * speed;
+        vy = (toBossY / dist) * speed;
+    }
+    
+    bossProjectiles.push({
+        x: playerX,
+        y: playerY,
+        vx: vx,
+        vy: vy,
+        type: 'player',
+        damage: getBossDamage(),
+        color: '#00ff88',
+        size: 10,
+        glow: true
+    });
+    playShoot();
+}
+
 function handleBossKeyUp(e) {
     keys[e.key.toLowerCase()] = false;
+    keys[e.code] = false;
 }
 
 function quitBoss() {
@@ -276,7 +317,9 @@ function bossLoop() {
     if (!bossActive) return;
     
     const now = Date.now();
-    const dt = Math.min((now - lastFrameTime) / 1000, 0.1);
+    let dt = (now - lastFrameTime) / 1000;
+    if (lastFrameTime === 0 || dt > 0.2) dt = 0.016;
+    dt = Math.min(dt, 0.1);
     lastFrameTime = now;
     
     bossCtx.fillStyle = '#050510';
@@ -290,15 +333,14 @@ function bossLoop() {
     document.getElementById('bossHpFill').style.width = (bossHp / bossMaxHp * 100) + '%';
     updateBossHud();
     
+    handlePlayerMovement(dt);
+    
     // Update and draw new boss system
     if (currentBoss) {
         currentBoss.game = { player: { x: playerX, y: playerY, width: 30, height: 30 } };
         currentBoss.canvasWidth = bossCanvas.width;
         currentBoss.canvasHeight = bossCanvas.height;
         currentBoss.update();
-        
-        // Draw the new boss
-        currentBoss.draw(bossCtx);
         
         // Draw intro if active
         if (currentBoss.showingIntro) {
@@ -309,22 +351,40 @@ function bossLoop() {
         bossHp = currentBoss.health;
         bossPhase = currentBoss.phase;
         
-        // Copy projectiles from new boss to collision system
-        bossProjectiles = [...currentBoss.projectiles];
+        // Add new boss projectiles to the main list (merge instead of replace)
+        currentBoss.projectiles.forEach(proj => {
+            proj.type = 'boss';
+            if (!bossProjectiles.find(p => p === proj)) {
+                bossProjectiles.push(proj);
+            }
+        });
     }
     
     updateBossPhase();
-    handlePlayerMovement(dt);
-    if (currentBoss) {
-        // Don't use old AI - new boss has its own attacks
-    } else {
-        updateBossAi(dt, now);
+    
+    // Auto-shoot if space held
+    if (keys[' '] || keys['Space']) {
+        playerShoot();
     }
+    
+    if (!currentBoss && bossCurrent) {
+        try {
+            updateBossAi(dt, now);
+        } catch (e) {
+            console.warn('Boss AI error:', e);
+        }
+    }
+    
     updateProjectiles(dt);
     updateBossAttacks(dt);
     updateVisuals(dt);
     handleCollisions();
     drawBossEffects();
+    
+    // Draw the new boss on top
+    if (currentBoss) {
+        currentBoss.draw(bossCtx);
+    }
     
     if (bossHp <= 0) {
         bossWin();
@@ -420,16 +480,22 @@ function updateBossAi(dt, now) {
 }
 
 function scheduleBossAttacks(now) {
-    const bossData = BOSS_PATTERNS[bossCurrent.id] || BOSS_PATTERNS.VoidTitan;
-    const phase = bossData.phases[bossPhase - 1];
+    if (!bossCurrent) return;
+    
+    const bossId = bossCurrent.id || 'VoidTitan';
+    const bossData = BOSS_PATTERNS[bossId] || BOSS_PATTERNS.VoidTitan;
+    const phase = bossData.phases && bossData.phases[bossPhase - 1];
     if (!phase) return;
     
+    if (!phase.attacks) return;
+    
     phase.attacks.forEach(attackName => {
-        const attack = bossData.abilities[attackName];
+        const attack = bossData.abilities && bossData.abilities[attackName];
         if (!attack) return;
         
-        const lastAttack = bossAttacks.find(a => a.name === attackName);
-        if (!lastAttack || now - lastAttack.lastTime > attack.interval * (1 / phase.speedMult)) {
+        const lastAttack = bossAttacks.find(a => a && a.name === attackName);
+        const speedMult = phase.speedMult || 1;
+        if (!lastAttack || now - lastAttack.lastTime > attack.interval * (1 / speedMult)) {
             triggerBossAttack(attackName, attack);
             if (!lastAttack) {
                 bossAttacks.push({ name: attackName, lastTime: now });
@@ -627,38 +693,43 @@ function drawBossEffects() {
     const shakeY = (Math.random() - 0.5) * bossVisuals.shake;
     bossCtx.translate(shakeX, shakeY);
     
-    const bossData = BOSS_PATTERNS[bossCurrent.id] || BOSS_PATTERNS.VoidTitan;
-    const size = bossData.size + Math.sin(bossVisuals.pulse) * 5;
-    
-    if (bossShield > 0) {
-        bossCtx.strokeStyle = `rgba(100, 200, 255, ${bossShield / 1500})`;
-        bossCtx.lineWidth = 5;
+    // Only draw old boss visual if not using new boss system
+    if (!currentBoss) {
+        const bossData = BOSS_PATTERNS[bossCurrent.id] || BOSS_PATTERNS.VoidTitan;
+        const size = bossData.size + Math.sin(bossVisuals.pulse) * 5;
+        
+        if (bossShield > 0) {
+            bossCtx.strokeStyle = `rgba(100, 200, 255, ${bossShield / 1500})`;
+            bossCtx.lineWidth = 5;
+            bossCtx.beginPath();
+            bossCtx.arc(bossX, bossY, size + 20, 0, Math.PI * 2);
+            bossCtx.stroke();
+        }
+        
+        bossCtx.shadowBlur = 20 * bossVisuals.glow;
+        bossCtx.shadowColor = bossData.color;
+        
+        const gradient = bossCtx.createRadialGradient(bossX, bossY, 0, bossX, bossY, size);
+        gradient.addColorStop(0, '#ffffff');
+        gradient.addColorStop(0.3, bossData.color);
+        gradient.addColorStop(1, 'transparent');
+        
+        bossCtx.fillStyle = gradient;
         bossCtx.beginPath();
-        bossCtx.arc(bossX, bossY, size + 20, 0, Math.PI * 2);
-        bossCtx.stroke();
+        bossCtx.arc(bossX, bossY, size, 0, Math.PI * 2);
+        bossCtx.fill();
+        
+        bossCtx.fillStyle = bossData.color;
+        bossCtx.beginPath();
+        bossCtx.arc(bossX, bossY, size * 0.6, 0, Math.PI * 2);
+        bossCtx.fill();
+        
+        bossCtx.shadowBlur = 0;
     }
     
-    bossCtx.shadowBlur = 20 * bossVisuals.glow;
-    bossCtx.shadowColor = bossData.color;
-    
-    const gradient = bossCtx.createRadialGradient(bossX, bossY, 0, bossX, bossY, size);
-    gradient.addColorStop(0, '#ffffff');
-    gradient.addColorStop(0.3, bossData.color);
-    gradient.addColorStop(1, 'transparent');
-    
-    bossCtx.fillStyle = gradient;
-    bossCtx.beginPath();
-    bossCtx.arc(bossX, bossY, size, 0, Math.PI * 2);
-    bossCtx.fill();
-    
-    bossCtx.fillStyle = bossData.color;
-    bossCtx.beginPath();
-    bossCtx.arc(bossX, bossY, size * 0.6, 0, Math.PI * 2);
-    bossCtx.fill();
-    
-    bossCtx.shadowBlur = 0;
     bossCtx.restore();
     
+    // Draw player
     bossCtx.fillStyle = '#00ff88';
     const playerSize = 15 + (playerSuper > 0 ? 5 : 0);
     bossCtx.beginPath();
@@ -705,6 +776,11 @@ function updateProjectiles(dt) {
     for (let i = bossProjectiles.length - 1; i >= 0; i--) {
         const p = bossProjectiles[i];
         
+        if (!p || p.removed) {
+            bossProjectiles.splice(i, 1);
+            continue;
+        }
+        
         if (p.duration) {
             p.duration -= dt * 1000;
             if (p.duration <= 0) {
@@ -740,7 +816,7 @@ function updateProjectiles(dt) {
         }
         
         if (p.nova) {
-            const dist = Math.sqrt((p.x - bossX) ** 2 + (p.y - bossY) ** 2);
+            const dist = Math.sqrt((p.x - (currentBoss ? currentBoss.x + (currentBoss.width || 100) / 2 : bossX)) ** 2 + (p.y - (currentBoss ? currentBoss.y + (currentBoss.height || 100) / 2 : bossY)) ** 2);
             if (dist > p.radius) {
                 bossProjectiles.splice(i, 1);
                 continue;
@@ -762,6 +838,20 @@ function updateProjectiles(dt) {
             continue;
         }
     }
+    
+    if (currentBoss && playerIframes <= 0) {
+        const bossCenterX = currentBoss.x + (currentBoss.width || 100) / 2;
+        const bossCenterY = currentBoss.y + (currentBoss.height || 100) / 2;
+        const bossRadius = (currentBoss.width || 100) / 2;
+        const dist = Math.sqrt((playerX - bossCenterX) ** 2 + (playerY - bossCenterY) ** 2);
+        
+        if (dist < bossRadius + 20) {
+            playerHp -= 0.5;
+            playerIframes = 500;
+            bossVisuals.shake = 8;
+            playPlayerHit();
+        }
+    }
 }
 
 function handleCollisions() {
@@ -774,10 +864,11 @@ function handleCollisions() {
         if (p.type !== 'player' && dist < 20 + (p.size || 10)) {
             if (playerIframes <= 0) {
                 let damage = p.damage || 10;
+                damage = Math.max(1, damage * 0.2);
                 if (bossShield > 0) damage *= (1 - PLAYER_SPECIALS.shield.damageReduce);
                 if (playerSuper > 0) damage /= PLAYER_SPECIALS.super.damageMult;
                 playerHp -= damage;
-                playerIframes = 500;
+                playerIframes = 800;
                 bossVisuals.shake = 10;
                 playPlayerHit();
             }
@@ -785,15 +876,21 @@ function handleCollisions() {
             continue;
         }
         
-        if ((p.type === 'player') && p.y < bossY + 50) {
-            const distToBoss = Math.sqrt((p.x - bossX) ** 2 + (p.y - bossY) ** 2);
-            if (distToBoss < 60 + (p.size || 10)) {
+        if (p.type === 'player') {
+            const bossCenterX = currentBoss ? currentBoss.x + (currentBoss.width || 100) / 2 : bossX;
+            const bossCenterY = currentBoss ? currentBoss.y + (currentBoss.height || 100) / 2 : bossY;
+            const distToBoss = Math.sqrt((p.x - bossCenterX) ** 2 + (p.y - bossCenterY) ** 2);
+            
+            if (distToBoss < (currentBoss ? (currentBoss.width || 100) / 2 : 60)) {
                 let damage = getBossDamage();
                 if (playerSuper > 0) damage *= PLAYER_SPECIALS.super.damageMult;
                 if (bossShield > 0) damage *= 0.3;
                 bossHp -= damage;
+                if (currentBoss) currentBoss.health = bossHp;
                 playBossHit();
                 createHitEffect(p.x, p.y);
+                bossProjectiles.splice(i, 1);
+                continue;
             }
         }
     }
@@ -879,9 +976,13 @@ function bossWin() {
     const dustReward = 5 + GAME.bossesWon * 2;
     GAME.relicDust = (GAME.relicDust || 0) + dustReward;
     
+    // Process relic drop
+    if (window.processBossRelicDrop) {
+        window.processBossRelicDrop();
+    }
+    
     saveGame(false);
     document.getElementById('bossArena').classList.remove('active');
-    toast(`Boss defeated! +${acReward} AC, +${dustReward} Dust`, 'success');
     checkAchievements();
 }
 

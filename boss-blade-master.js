@@ -65,15 +65,17 @@ class BladeMaster extends BossBase {
         this.playerHistory = [];
         this.isCharging = false;
         this.chargeDirection = 1;
+        this.parryActive = false;
+        this.bladeOrbitals = [];
         
         this.initAttackCooldowns = () => {
-            this.attackCooldowns = { ring: 0, slash: 0, charge: 0, mirror: 0 };
+            this.attackCooldowns = { ring: 0, slash: 0, charge: 0, mirror: 0, flurry: 0, parry: 0, orbital: 0 };
         };
         this.initAttackCooldowns();
     }
     
     initAttackCooldowns() {
-        this.attackCooldowns = { ring: 0, slash: 0, charge: 0, mirror: 0 };
+        this.attackCooldowns = { ring: 0, slash: 0, charge: 0, mirror: 0, flurry: 0, parry: 0, orbital: 0 };
     }
     
     movement() {
@@ -113,6 +115,10 @@ class BladeMaster extends BossBase {
                 this.slashCombo(px, py);
                 this.attackCooldowns.slash = 120;
             }
+            if (this.attackCooldowns.orbital <= 0) {
+                this.spawnOrbitingBlades();
+                this.attackCooldowns.orbital = 180;
+            }
         }
         
         if (this.phase === 2) {
@@ -128,6 +134,10 @@ class BladeMaster extends BossBase {
             if (this.attackCooldowns.mirror <= 0) {
                 this.spawnMirrorClone();
                 this.attackCooldowns.mirror = 200;
+            }
+            if (this.attackCooldowns.flurry <= 0) {
+                this.bladeFlurry(px, py);
+                this.attackCooldowns.flurry = 150;
             }
         }
         
@@ -147,7 +157,13 @@ class BladeMaster extends BossBase {
                 }
                 this.attackCooldowns.mirror = 150;
             }
+            if (this.attackCooldowns.parry <= 0) {
+                this.parryStance();
+                this.attackCooldowns.parry = 200;
+            }
         }
+        
+        this.updateOrbitingBlades();
         
         this.mirrorClones = this.mirrorClones.filter(c => c.update(this.playerHistory));
     }
@@ -190,8 +206,93 @@ class BladeMaster extends BossBase {
         window.bossAudio.playTeleport();
     }
     
+    spawnOrbitingBlades() {
+        for (let i = 0; i < 4; i++) {
+            this.bladeOrbitals.push({
+                angle: (Math.PI * 2 / 4) * i,
+                radius: 120,
+                rotation: 0
+            });
+        }
+    }
+    
+    updateOrbitingBlades() {
+        const bx = this.x + this.width / 2;
+        const by = this.y + this.height / 2;
+        
+        for (let i = this.bladeOrbitals.length - 1; i >= 0; i--) {
+            const blade = this.bladeOrbitals[i];
+            blade.angle += 0.04;
+            blade.rotation += 0.1;
+            
+            const px = bx + Math.cos(blade.angle) * blade.radius;
+            const py = by + Math.sin(blade.angle) * blade.radius;
+            
+            if (Math.random() < 0.02) {
+                const proj = new Projectile(px, py, (Math.random() - 0.5) * 3, 5, 8, '#ffaa00', 5);
+                this.projectiles.push(proj);
+            }
+        }
+    }
+    
+    bladeFlurry(targetX, targetY) {
+        const bx = this.x + this.width / 2;
+        const by = this.y + this.height / 2;
+        
+        for (let i = 0; i < 12; i++) {
+            setTimeout(() => {
+                const angle = (Math.PI * 2 / 12) * i + Math.random() * 0.3;
+                const speed = 8 + Math.random() * 4;
+                const proj = new Projectile(bx, by, Math.cos(angle) * speed, Math.sin(angle) * speed, 12, '#ff6600', 8);
+                proj.bladeTrail = true;
+                this.projectiles.push(proj);
+            }, i * 50);
+        }
+    }
+    
+    parryStance() {
+        this.parryActive = true;
+        
+        setTimeout(() => {
+            this.parryActive = false;
+            
+            const bx = this.x + this.width / 2;
+            const by = this.y + this.height / 2;
+            for (let i = 0; i < 8; i++) {
+                const angle = (Math.PI * 2 / 8) * i;
+                const proj = new Projectile(bx, by, Math.cos(angle) * 10, Math.sin(angle) * 10, 15, '#ffffff', 10);
+                this.projectiles.push(proj);
+            }
+            
+            window.bossAudio.playAbility();
+        }, 1500);
+    }
+    
+    drawOrbitingBlades(ctx) {
+        const bx = this.x + this.width / 2;
+        const by = this.y + this.height / 2;
+        
+        for (const blade of this.bladeOrbitals) {
+            const px = bx + Math.cos(blade.angle) * blade.radius;
+            const py = by + Math.sin(blade.angle) * blade.radius;
+            
+            ctx.save();
+            ctx.translate(px, py);
+            ctx.rotate(blade.rotation);
+            ctx.fillStyle = '#ffaa00';
+            ctx.beginPath();
+            ctx.moveTo(0, -15);
+            ctx.lineTo(8, 10);
+            ctx.lineTo(-8, 10);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+    
     draw(ctx) {
         this.mirrorClones.forEach(c => c.draw(ctx));
+        this.drawOrbitingBlades(ctx);
         
         this.particleSystem.draw(ctx);
         
@@ -235,265 +336,3 @@ class BladeMaster extends BossBase {
 }
 
 window.BladeMaster = BladeMaster;
-
-// ========================
-// CYBER OVERLORD BOSS
-// ========================
-
-class DroneSwarm {
-    constructor(x, y, swarmType = 'attack') {
-        this.x = x;
-        this.y = y;
-        this.swarmType = swarmType;
-        this.drones = [];
-        this.lifetime = 300;
-        this.adaptationLevel = 0;
-        
-        for (let i = 0; i < 6; i++) {
-            this.createDrone();
-        }
-    }
-    
-    createDrone() {
-        this.drones.push({
-            x: this.x + (Math.random() - 0.5) * 60,
-            y: this.y + (Math.random() - 0.5) * 60,
-            vx: (Math.random() - 0.5) * 4,
-            vy: (Math.random() - 0.5) * 4,
-            health: 20,
-            lifespan: 180
-        });
-    }
-    
-    update(playerX, playerY, bossX, bossY) {
-        this.lifetime--;
-        
-        this.drones = this.drones.filter(drone => {
-            drone.lifespan--;
-            
-            if (this.swarmType === 'attack') {
-                const dx = playerX - drone.x;
-                const dy = playerY - drone.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist > 0 && dist > 30) {
-                    drone.x += (dx / dist) * 3;
-                    drone.y += (dy / dist) * 3;
-                }
-            } else if (this.swarmType === 'defend') {
-                const dx = bossX - drone.x;
-                const dy = bossY - drone.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist > 60 && dist < 150) {
-                    drone.x += (dx / dist) * 2;
-                    drone.y += (dy / dist) * 2;
-                } else if (dist <= 60) {
-                    drone.x -= (dx / dist) * 1;
-                    drone.y -= (dy / dist) * 1;
-                }
-            }
-            
-            return drone.lifespan > 0;
-        });
-        
-        if (this.drones.length < 4 && Math.random() < 0.1) {
-            this.createDrone();
-        }
-        
-        return this.lifetime > 0;
-    }
-    
-    draw(ctx) {
-        const colors = { attack: 'rgb(255, 0, 0)', defend: 'rgb(0, 255, 0)', scout: 'rgb(0, 0, 255)' };
-        
-        this.drones.forEach(drone => {
-            ctx.fillStyle = colors[this.swarmType];
-            ctx.beginPath();
-            ctx.arc(drone.x, drone.y, 8, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.strokeStyle = colors[this.swarmType];
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.arc(drone.x, drone.y, 12, 0, Math.PI * 2);
-            ctx.stroke();
-        });
-    }
-}
-
-class CyberOverlord extends BossBase {
-    constructor() {
-        super('Cyber Overlord', 900, '#00ff00', 3);
-        this.width = 130;
-        this.height = 130;
-        
-        this.droneSwarms = [];
-        this.firewallTimer = 0;
-        
-        this.initAttackCooldowns = () => {
-            this.attackCooldowns = { drone: 0, firewall: 0, corruption: 0, crash: 0 };
-        };
-        this.initAttackCooldowns();
-    }
-    
-    initAttackCooldowns() {
-        this.attackCooldowns = { drone: 0, firewall: 0, corruption: 0, crash: 0 };
-    }
-    
-    movement() {
-        const move = MovementPatterns.chase(this, 1, 0.2);
-        this.x += move.dx;
-        this.y += move.dy;
-        
-        this.x = Math.max(50, Math.min(this.canvasWidth - this.width - 50, this.x));
-        this.y = Math.max(50, Math.min(180, this.y));
-    }
-    
-    runAttacks() {
-        const cooldowns = { ...this.attackCooldowns };
-        this.updateAttackCooldowns(cooldowns);
-        this.attackCooldowns = cooldowns;
-        
-        if (!this.game || !this.game.player) return;
-        const player = this.game.player;
-        const px = player.x + (player.width || 30) / 2;
-        const py = player.y + (player.height || 30) / 2;
-        
-        if (this.phase === 1) {
-            if (this.attackCooldowns.drone <= 0) {
-                this.spawnDroneSwarm('attack');
-                this.attackCooldowns.drone = 180;
-            }
-            if (this.attackCooldowns.corruption <= 0) {
-                this.dataCorruption(px, py);
-                this.attackCooldowns.corruption = 150;
-            }
-        }
-        
-        if (this.phase === 2) {
-            if (this.attackCooldowns.drone <= 0) {
-                this.spawnDroneSwarm('attack');
-                this.spawnDroneSwarm('defend');
-                this.attackCooldowns.drone = 120;
-            }
-            if (this.attackCooldowns.firewall <= 0) {
-                this.firewallAttack();
-                this.attackCooldowns.firewall = 150;
-            }
-            if (this.attackCooldowns.corruption <= 0) {
-                this.dataCorruption(px, py);
-                this.dataCorruption(px + 50, py - 50);
-                this.attackCooldowns.corruption = 100;
-            }
-        }
-        
-        if (this.phase === 3) {
-            if (this.attackCooldowns.crash <= 0) {
-                this.systemCrash();
-                this.attackCooldowns.crash = 200;
-            }
-            if (this.attackCooldowns.drone <= 0) {
-                this.spawnDroneSwarm('attack');
-                this.spawnDroneSwarm('scout');
-                this.attackCooldowns.drone = 80;
-            }
-            if (this.attackCooldowns.corruption <= 0) {
-                for (let i = 0; i < 5; i++) {
-                    this.dataCorruption(100 + Math.random() * (this.canvasWidth - 200), 100 + Math.random() * 200);
-                }
-                this.attackCooldowns.corruption = 80;
-            }
-        }
-        
-        this.droneSwarms = this.droneSwarms.filter(s => s.update(px, py, this.x + this.width/2, this.y + this.height/2));
-    }
-    
-    spawnDroneSwarm(type) {
-        const swarm = new DroneSwarm(
-            50 + Math.random() * (this.canvasWidth - 100),
-            50 + Math.random() * 150,
-            type
-        );
-        this.droneSwarms.push(swarm);
-        window.bossAudio.playAbility();
-    }
-    
-    dataCorruption(targetX, targetY) {
-        const proj = new Projectile(targetX, targetY - 30, 0, 6, 12, '#00ff00', 10, ProjectileBehavior.GLITCH);
-        this.projectiles.push(proj);
-    }
-    
-    firewallAttack() {
-        for (let i = 0; i < 4; i++) {
-            const x = 100 + i * 250;
-            const zone = new HazardZone(x, 250, 25, 8, 200, 'damage');
-            this.arenaHazards.push(zone);
-        }
-    }
-    
-    systemCrash() {
-        AttackPatterns.ring(this, 2, 16, 6, 15);
-        
-        for (let i = 0; i < 8; i++) {
-            const proj = new Projectile(
-                this.x + this.width/2,
-                this.y + this.height/2,
-                (Math.random() - 0.5) * 10,
-                (Math.random() - 0.5) * 10,
-                20, '#00ff00', 12, ProjectileBehavior.GLITCH
-            );
-            this.projectiles.push(proj);
-        }
-        
-        if (window.bossScreenShake) {
-            window.bossScreenShake.start(25, 15);
-        }
-        
-        window.bossAudio.playExplosion();
-    }
-    
-    draw(ctx) {
-        this.droneSwarms.forEach(s => s.draw(ctx));
-        
-        this.particleSystem.draw(ctx);
-        
-        ctx.save();
-        const gradient = ctx.createRadialGradient(this.x + this.width/2, this.y + this.height/2, 0, this.x + this.width/2, this.y + this.height/2, this.width);
-        gradient.addColorStop(0, '#ffffff');
-        gradient.addColorStop(0.3, this.color);
-        gradient.addColorStop(1, 'transparent');
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(this.x + this.width/2, this.y + this.height/2, this.width, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.fillStyle = '#001100';
-        ctx.fillRect(this.x + 20, this.y + 20, this.width - 40, this.height - 40);
-        
-        ctx.fillStyle = this.color;
-        ctx.fillRect(this.x + 30, this.y + 30, this.width - 60, this.height - 60);
-        
-        ctx.fillStyle = '#00ff00';
-        for (let i = 0; i < 8; i++) {
-            const lineY = this.y + 40 + i * 10;
-            ctx.fillRect(this.x + 35, lineY, this.width - 70, 4);
-        }
-        
-        ctx.fillStyle = '#ffffff';
-        const scanline = Math.sin(Date.now() * 0.01) > 0;
-        if (scanline) {
-            ctx.fillRect(this.x + 30, this.y + 30, this.width - 60, 2);
-        }
-        
-        ctx.fillStyle = '#00ff00';
-        ctx.beginPath();
-        ctx.arc(this.x + this.width/2 - 15, this.y + this.height/2 - 10, 8, 0, Math.PI * 2);
-        ctx.arc(this.x + this.width/2 + 15, this.y + this.height/2 - 10, 8, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.restore();
-        this.effects.forEach(e => e.draw(ctx));
-        this.projectiles.forEach(p => p.draw(ctx));
-    }
-}
-
-window.CyberOverlord = CyberOverlord;

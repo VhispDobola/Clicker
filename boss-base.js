@@ -63,21 +63,22 @@ class BossBase {
     }
     
     initAttackCooldowns() {
-        // Override in subclass
+        this.attackCooldowns = {};
     }
     
     updateAttackCooldowns(cooldowns) {
+        if (!this.attackCooldowns) this.attackCooldowns = {};
+        
         for (let key in cooldowns) {
-            if (this.attackCooldowns[key] !== undefined) {
-                if (this.attackCooldowns[key] > 0) {
-                    this.attackCooldowns[key]--;
-                }
-                cooldowns[key] = this.attackCooldowns[key];
+            if (this.attackCooldowns[key] !== undefined && this.attackCooldowns[key] > 0) {
+                this.attackCooldowns[key]--;
             }
+            cooldowns[key] = this.attackCooldowns[key] || 0;
         }
     }
     
     setCooldown(name, value) {
+        if (!this.attackCooldowns) this.attackCooldowns = {};
         this.attackCooldowns[name] = value;
     }
     
@@ -127,19 +128,36 @@ class BossBase {
     update() {
         this.time++;
         
+        if (!this.canvasWidth || !this.canvasHeight) {
+            this.canvasWidth = 1000;
+            this.canvasHeight = 700;
+        }
+        
         this.projectiles = this.projectiles.filter(p => 
-            p.update(this.canvasWidth, this.canvasHeight)
+            p.update && p.update(this.canvasWidth, this.canvasHeight)
         );
         
-        this.effects = this.effects.filter(e => e.update());
+        this.effects = this.effects.filter(e => e.update && e.update());
         
-        this.arenaHazards = this.arenaHazards.filter(h => h.update());
+        this.arenaHazards = this.arenaHazards.filter(h => h.update && h.update());
         
-        this.particleSystem.update();
+        if (this.particleSystem && this.particleSystem.update) {
+            this.particleSystem.update();
+        }
         
         this.checkPhaseTransition();
-        this.movement();
-        this.runAttacks();
+        
+        try {
+            this.movement();
+        } catch (e) {
+            console.warn('Boss movement error:', e);
+        }
+        
+        try {
+            this.runAttacks();
+        } catch (e) {
+            console.warn('Boss attacks error:', e);
+        }
     }
     
     draw(ctx) {

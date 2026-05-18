@@ -19,20 +19,20 @@ window.loadGame = loadGame;
 window.resetGame = resetGame;
 window.checkAchievements = checkAchievements;
 window.checkMilestones = checkMilestones;
+window.toast = toast;
+window.formatNumber = formatNumber;
 
 function loadGame() {
     const saved = localStorage.getItem('quantumGenesis');
     if (saved) {
         const data = JSON.parse(saved);
-        
-        // Merge saved data with defaults
+
         if (data.prestigeBonus === undefined) {
             data.prestigeBonus = (data.prestigeRank + 1) * 0.5;
         }
         if (data.lastLogin === undefined) data.lastLogin = Date.now();
         if (data.maxCombo === undefined) data.maxCombo = 1;
-        
-        // Initialize relic system fields
+
         if (data.relics === undefined) data.relics = {};
         if (data.relicDust === undefined) data.relicDust = 0;
         if (data.ascensionCrystals === undefined) data.ascensionCrystals = 0;
@@ -41,16 +41,31 @@ function loadGame() {
         if (data.achievements === undefined) data.achievements = [];
         if (data.milestones === undefined) data.milestones = [];
         if (data.relicAchievements === undefined) data.relicAchievements = [];
-        
+        if (data.relicShopItems === undefined) data.relicShopItems = data.relicshopItems || [];
+        if (data.relicShopRotation === undefined) data.relicShopRotation = data.relicshopRotation || 0;
+
         Object.assign(GAME, data);
-        
-        // Calculate offline progress
+
+        calculateRelicBonuses();
+
         if (data.lastLogin && data.energy !== undefined) {
             const offlineMs = Date.now() - data.lastLogin;
-            const offlineSeconds = Math.min(offlineMs / 1000, GAME_CONFIG.MAX_OFFLINE_HOURS * 3600);
+            const offlineHours = Math.min(offlineMs / 1000 / 3600, GAME_CONFIG.MAX_OFFLINE_HOURS);
+            const offlineSeconds = offlineHours * 3600;
             const cps = getCps();
             if (cps > 0 && offlineSeconds > 10) {
-                const offlineEnergy = cps * offlineSeconds;
+                let offlineEnergy = cps * offlineSeconds;
+
+                if (relicBonuses.offlinePassive || relicBonuses.doubleOffline) {
+                    offlineEnergy *= 2;
+                }
+                if (relicBonuses.offlineGain > 0) {
+                    offlineEnergy *= (1 + relicBonuses.offlineGain);
+                }
+                if (relicBonuses.energyStorage > 0) {
+                    offlineEnergy *= (1 + relicBonuses.energyStorage);
+                }
+
                 GAME.energy += offlineEnergy;
                 GAME.lifetimeEnergy += offlineEnergy;
                 if (offlineEnergy > 100) {
@@ -58,6 +73,8 @@ function loadGame() {
                 }
             }
         }
+
+        if (typeof checkRelicAchievements === 'function') checkRelicAchievements();
     }
 }
 

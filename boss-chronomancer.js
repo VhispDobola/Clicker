@@ -55,15 +55,17 @@ class Chronomancer extends BossBase {
         this.timeClones = [];
         this.timeZones = [];
         this.timeFieldActive = false;
+        this.rewindActive = false;
+        this.clockworkProjectiles = [];
         
         this.initAttackCooldowns = () => {
-            this.attackCooldowns = { clone: 0, field: 0, stop: 0, paradox: 0 };
+            this.attackCooldowns = { clone: 0, field: 0, stop: 0, paradox: 0, orb: 0, rewind: 0, clock: 0 };
         };
         this.initAttackCooldowns();
     }
     
     initAttackCooldowns() {
-        this.attackCooldowns = { clone: 0, field: 0, stop: 0, paradox: 0 };
+        this.attackCooldowns = { clone: 0, field: 0, stop: 0, paradox: 0, orb: 0, rewind: 0, clock: 0 };
     }
     
     movement() {
@@ -94,6 +96,10 @@ class Chronomancer extends BossBase {
                 this.createTimeField(px, py, 'slow');
                 this.attackCooldowns.field = 150;
             }
+            if (this.attackCooldowns.orb <= 0) {
+                this.spawnTimeOrb(px, py);
+                this.attackCooldowns.orb = 120;
+            }
         }
         
         if (this.phase === 2) {
@@ -109,6 +115,10 @@ class Chronomancer extends BossBase {
             if (this.attackCooldowns.field <= 0) {
                 this.createTimeField(px, py, Math.random() > 0.5 ? 'slow' : 'fast');
                 this.attackCooldowns.field = 100;
+            }
+            if (this.attackCooldowns.clock <= 0) {
+                this.clockworkBarrage();
+                this.attackCooldowns.clock = 180;
             }
         }
         
@@ -126,6 +136,14 @@ class Chronomancer extends BossBase {
             if (this.attackCooldowns.stop <= 0) {
                 this.timeStop(px, py);
                 this.attackCooldowns.stop = 150;
+            }
+            if (this.attackCooldowns.rewind <= 0) {
+                this.rewindAbility();
+                this.attackCooldowns.rewind = 300;
+            }
+            if (this.attackCooldowns.clock <= 0) {
+                this.clockworkBarrage();
+                this.attackCooldowns.clock = 100;
             }
         }
         
@@ -175,6 +193,92 @@ class Chronomancer extends BossBase {
         AttackPatterns.ring(this, 2, 10, 5, 12);
         
         window.bossAudio.playBossDefeat();
+    }
+    
+    spawnTimeOrb(targetX, targetY) {
+        const bx = this.x + this.width / 2;
+        const by = this.y + this.height / 2;
+        
+        for (let i = 0; i < 5; i++) {
+            const angle = (Math.PI * 2 / 5) * i;
+            const proj = new Projectile(bx, by, Math.cos(angle) * 4, Math.sin(angle) * 4, 8, '#00ffff', 12);
+            proj.timeOrb = true;
+            proj.slowRadius = 60;
+            this.projectiles.push(proj);
+        }
+    }
+    
+    clockworkBarrage() {
+        const bx = this.x + this.width / 2;
+        
+        for (let i = 0; i < 4; i++) {
+            setTimeout(() => {
+                const x = 100 + i * 200;
+                const y = 50 + Math.random() * 50;
+                
+                const clock = {
+                    x: x, y: y, rotation: 0,
+                    update: function() {
+                        this.rotation += 0.1;
+                        return true;
+                    },
+                    draw: function(ctx) {
+                        ctx.save();
+                        ctx.translate(this.x, this.y);
+                        ctx.rotate(this.rotation);
+                        ctx.strokeStyle = '#ffff00';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 20, 0, Math.PI * 2);
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(15, 0);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                };
+                
+                this.effects.push(clock);
+                
+                for (let j = 0; j < 3; j++) {
+                    setTimeout(() => {
+                        const angle = Math.random() * Math.PI * 2;
+                        const proj = new Projectile(x, y, Math.cos(angle) * 6, Math.sin(angle) * 6, 10, '#ffff00', 6);
+                        this.projectiles.push(proj);
+                    }, j * 200);
+                }
+            }, i * 300);
+        }
+    }
+    
+    rewindAbility() {
+        this.rewindActive = true;
+        
+        const originalProjectiles = [...this.projectiles];
+        
+        setTimeout(() => {
+            for (const proj of originalProjectiles) {
+                if (proj.x > 0 && proj.x < this.canvasWidth && proj.y > 0 && proj.y < this.canvasHeight) {
+                    proj.x = this.x + this.width / 2 + (Math.random() - 0.5) * 100;
+                    proj.y = this.y + this.height / 2 - 50;
+                    proj.dx = (Math.random() - 0.5) * 5;
+                    proj.dy = (Math.random() - 0.5) * 5;
+                }
+            }
+            
+            this.particleSystem.emitBurst(
+                this.x + this.width / 2,
+                this.y + this.height / 2,
+                '#ffffff', 25, 12, 40
+            );
+            
+            window.bossAudio.playTeleport();
+        }, 500);
+        
+        setTimeout(() => {
+            this.rewindActive = false;
+        }, 1500);
     }
     
     draw(ctx) {

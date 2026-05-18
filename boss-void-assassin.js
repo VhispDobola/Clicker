@@ -136,18 +136,24 @@ class VoidAssassin extends BossBase {
         
         this.shadowClones = [];
         this.voidPortals = [];
+        this.voidProjectiles = [];
         this.shadowCloneTimer = 0;
         this.portalTimer = 0;
         this.teleportTimer = 0;
         this.lastPlayerX = 0;
         this.lastPlayerY = 0;
+        this.shadowVeilActive = false;
+        this.assassinationCount = 0;
         
         this.initAttackCooldowns = () => {
             this.attackCooldowns = {
                 shadow: 0,
                 portal: 0,
                 strike: 0,
-                dash: 0
+                dash: 0,
+                blade: 0,
+                veil: 0,
+                assassination: 0
             };
         };
         this.initAttackCooldowns();
@@ -158,7 +164,10 @@ class VoidAssassin extends BossBase {
             shadow: 0,
             portal: 0,
             strike: 0,
-            dash: 0
+            dash: 0,
+            blade: 0,
+            veil: 0,
+            assassination: 0
         };
     }
     
@@ -201,6 +210,11 @@ class VoidAssassin extends BossBase {
                 this.teleportStrike(px, py);
                 this.attackCooldowns.strike = 120;
             }
+            
+            if (this.attackCooldowns.blade <= 0) {
+                this.voidBladeStrike(px, py);
+                this.attackCooldowns.blade = 150;
+            }
         }
         
         if (this.phase === 2) {
@@ -218,6 +232,16 @@ class VoidAssassin extends BossBase {
             if (this.attackCooldowns.strike <= 0) {
                 this.teleportStrike(px, py);
                 this.attackCooldowns.strike = 90;
+            }
+            
+            if (this.attackCooldowns.blade <= 0) {
+                this.voidBladeStrike(px, py);
+                this.attackCooldowns.blade = 100;
+            }
+            
+            if (this.attackCooldowns.veil <= 0) {
+                this.activateShadowVeil();
+                this.attackCooldowns.veil = 300;
             }
         }
         
@@ -243,6 +267,16 @@ class VoidAssassin extends BossBase {
                 this.teleportStrike(px, py);
                 this.attackCooldowns.strike = 60;
             }
+            
+            if (this.attackCooldowns.assassination <= 0) {
+                this.assassinationStrike(px, py);
+                this.attackCooldowns.assassination = 200;
+            }
+            
+            if (this.attackCooldowns.blade <= 0) {
+                this.fireVoidProjectiles(px, py);
+                this.attackCooldowns.blade = 80;
+            }
         }
         
         this.shadowClones = this.shadowClones.filter(clone => 
@@ -250,6 +284,8 @@ class VoidAssassin extends BossBase {
         );
         
         this.voidPortals = this.voidPortals.filter(portal => portal.update());
+        
+        this.updateVoidProjectiles();
     }
     
     spawnShadowClone() {
@@ -330,6 +366,87 @@ class VoidAssassin extends BossBase {
         );
     }
     
+    voidBladeStrike(targetX, targetY) {
+        const bx = this.x + this.width / 2;
+        const by = this.y + this.height / 2;
+        
+        for (let i = 0; i < 3; i++) {
+            const angle = Math.atan2(targetY - by, targetX - bx) + (i - 1) * 0.5;
+            const proj = new Projectile(bx, by, Math.cos(angle) * 8, Math.sin(angle) * 8, 15, '#ff00ff', 10);
+            proj.bladeTrail = true;
+            this.projectiles.push(proj);
+        }
+        
+        this.particleSystem.emitBurst(bx, by, '#ff00ff', 15, 10, 30);
+    }
+    
+    fireVoidProjectiles(targetX, targetY) {
+        const bx = this.x + this.width / 2;
+        const by = this.y + this.height / 2;
+        
+        for (let i = 0; i < 3; i++) {
+            const proj = new Projectile(bx, by, 0, 0, 12, '#6600aa', 12, ProjectileBehavior.HOMING);
+            proj.targetX = targetX + (Math.random() - 0.5) * 50;
+            proj.targetY = targetY + (Math.random() - 0.5) * 50;
+            proj.shadowTrail = true;
+            this.projectiles.push(proj);
+        }
+    }
+    
+    updateVoidProjectiles() {
+        for (const proj of this.projectiles) {
+            if (proj.shadowTrail && proj.targetX !== undefined) {
+                const dx = proj.targetX - proj.x;
+                const dy = proj.targetY - proj.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > 0) {
+                    proj.x += (dx / dist) * 0.5;
+                    proj.y += (dy / dist) * 0.5;
+                }
+                
+                if (Math.random() < 0.3) {
+                    this.particleSystem.emit(proj.x, proj.y, 0, 0, '#6600aa', 5, 10, 2);
+                }
+            }
+        }
+    }
+    
+    activateShadowVeil() {
+        this.shadowVeilActive = true;
+        setTimeout(() => { this.shadowVeilActive = false; }, 3000);
+    }
+    
+    assassinationStrike(targetX, targetY) {
+        const strikes = 5;
+        for (let i = 0; i < strikes; i++) {
+            setTimeout(() => {
+                this.x = targetX - this.width / 2 + (Math.random() - 0.5) * 200;
+                this.y = Math.max(50, targetY - 100 + (Math.random() - 0.5) * 100);
+                
+                this.x = Math.max(50, Math.min(this.canvasWidth - this.width - 50, this.x));
+                this.y = Math.max(50, Math.min(200, this.y));
+                
+                this.particleSystem.emitBurst(
+                    this.x + this.width / 2,
+                    this.y + this.height / 2,
+                    '#ff00ff', 10, 8, 20
+                );
+                
+                for (let j = 0; j < 5; j++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const proj = new Projectile(
+                        this.x + this.width / 2,
+                        this.y + this.height / 2,
+                        Math.cos(angle) * 5,
+                        Math.sin(angle) * 5,
+                        10, '#ff00ff', 6
+                    );
+                    this.projectiles.push(proj);
+                }
+            }, i * 150);
+        }
+    }
+    
     draw(ctx) {
         this.voidPortals.forEach(p => p.draw(ctx));
         
@@ -338,6 +455,10 @@ class VoidAssassin extends BossBase {
         this.particleSystem.draw(ctx);
         
         ctx.save();
+        
+        if (this.shadowVeilActive) {
+            ctx.globalAlpha = 0.3;
+        }
         
         const pulse = 1 + 0.2 * Math.sin(this.time * 0.1);
         

@@ -17,46 +17,40 @@ window.abilityCooldowns = abilityCooldowns;
 function handleClick() {
     initAudio();
     
-    // Calculate power
+    calculateRelicBonuses();
+    
     const isCrit = Math.random() < getCritChance();
     let power = getClickPower();
     if (isCrit) { power *= getCritMult(); playCrit(); }
     else { playClick(); }
     
-    // Apply combo bonus from relics
     power *= (1 + relicBonuses.combo);
     
-    // Add energy
+    const moltenBonus = checkMoltenStarSpawn();
+    if (moltenBonus > 0) power += moltenBonus;
+    
     GAME.energy += power;
     GAME.lifetimeEnergy += power;
     GAME.clicks++;
     
-    // Update combo
     const maxComboBonus = relicBonuses.maxCombo || 0;
     clickCombo = Math.min(10 + maxComboBonus, clickCombo + 0.1);
     GAME.combo = clickCombo;
     
-    // Track max combo
     if (clickCombo > GAME.maxCombo) {
         GAME.maxCombo = clickCombo;
     }
     
-    // Screen shake
     const shakeAmount = Math.min(10, Math.log10(power + 1) * 2);
     screenShake = isCrit ? shakeAmount * 2 : shakeAmount;
     
-    // Spawn particles
     spawnParticles(power, isCrit);
     
-    // Trigger EPIC visual effect
     if (typeof addClickBurst === 'function') {
         addClickBurst(window.innerWidth / 2, window.innerHeight / 2, power, isCrit);
     }
     
-    // Click text
     showClickText(power, isCrit);
-    
-    // Check milestones
     checkMilestones();
     
     updateDisplay();
@@ -266,6 +260,11 @@ window.updateParticles = updateParticles;
 window.applyScreenShake = applyScreenShake;
 window.activateAbility = activateAbility;
 window.renderAbilityBar = renderAbilityBar;
-
-// Make global variables
 window.abilityCooldowns = abilityCooldowns;
+window.checkMilestones = checkMilestones;
+window.checkAchievements = checkAchievements;
+window.buyUpgrade = buyUpgrade;
+window.doPrestige = doPrestige;
+window.startBoss = startBoss;
+window.quitBoss = quitBoss;
+window.toggleFullscreen = toggleFullscreen;
